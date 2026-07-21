@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+/*
+ * Krispy is a dark-only product (matches the DAVINCI-style reference the
+ * user is adapting from) — no light theme toggle, so tokens are declared
+ * directly rather than through a :root indirection layer.
+ */
+@theme {
+  --color-app: #000000;
+  --color-surface: #0d0d0f;
+  --color-surface-raised: #17171a;
+  --color-surface-hover: #1f1f23;
+
+  --color-border: rgb(255 255 255 / 0.08);
+  --color-border-strong: rgb(255 255 255 / 0.14);
+
+  --color-text-primary: #f5f5f6;
+  --color-text-secondary: #9a9aa1;
+  --color-text-tertiary: #6b6b72;
+
+  --color-accent: #3b6ff0;
+  --color-accent-hover: #2f5cd6;
+  --color-on-accent: #ffffff;
+
+  --color-danger: #f2555a;
+  --color-success: #34c77b;
+
+  --color-background: var(--color-app);
+  --color-foreground: var(--color-text-primary);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-app);
+  color: var(--color-text-primary);
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* Dropdown menus (aspect ratio picker, etc.) — grows open to the right
+   from its anchor instead of just popping into view. */
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.85) translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1) translateX(0);
+  }
+}
+
+.animate-dropdown-in {
+  transform-origin: left center;
+  animation: dropdown-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Variant for dropdowns that open downward instead of sideways — used
+   wherever a row is too crowded for a sideways flyout to avoid overlapping
+   neighboring controls. */
+@keyframes dropdown-in-down {
+  from {
+    opacity: 0;
+    transform: scaleY(0.85) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+.animate-dropdown-in-down {
+  transform-origin: top center;
+  animation: dropdown-in-down 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Landing page scroll-reveal — elements fade/slide in the first time they
+   cross into view (see components/landing/Reveal.tsx), instead of just
+   sitting there fully rendered from the first frame. */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  opacity: 0;
+}
+
+.reveal-visible {
+  animation: reveal-up 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* /app page transitions — src/app/app/template.tsx remounts this on every
+   navigation, which replays the animation each time. */
+@keyframes page-transition-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: page-transition-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* /app background — a quiet starfield behind the sidebar and page content.
+   Fixed, behind everything, ignores pointer events. Each star twinkles on
+   its own cycle; the whole field drifts very slowly for a subtle parallax
+   sense of depth, like looking out at a night sky rather than a screensaver. */
+.star-field {
+  position: absolute;
+  inset: -4%;
+  animation: star-field-drift 160s linear infinite alternate;
+}
+
+.star {
+  position: absolute;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.55);
+  animation-name: star-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes star-twinkle {
+  0%,
+  100% {
+    opacity: var(--base-opacity, 0.6);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.12;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes star-field-drift {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-2.5%, 1.5%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-field {
+    animation: none;
+  }
+  .star {
+    animation: none;
+    opacity: var(--base-opacity, 0.6);
+  }
+}
+
+/* Landing page only — glass-morphism nav/pills over the hero video. */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.15) 20%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.15) 80%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}

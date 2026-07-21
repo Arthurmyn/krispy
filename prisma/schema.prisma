@@ -1,0 +1,223 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AspectRatio {
+  RATIO_9_16
+  RATIO_16_9
+  RATIO_1_1
+}
+
+enum ProjectStatus {
+  DRAFT
+  SCRIPTING
+  REVIEWING_SCENES
+  READY_TO_RENDER
+  RENDERING
+  COMPLETE
+}
+
+enum Platform {
+  TIKTOK
+  YOUTUBE_SHORTS
+  INSTAGRAM_REELS
+}
+
+// Drives the script-generation stage machine (src/lib/prompts). Each stage
+// exposes exactly one tool to the model, so it can't finalize an idea before
+// niche + style are locked in, or scenes before the idea is locked in.
+// Order: Niche -> Style (passport, duration, language) -> Idea -> Script.
+enum ChatStage {
+  NICHE
+  STYLE
+  IDEA
+  SCRIPT
+  SCRIPT_REVIEW
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+enum AssetStatus {
+  PENDING
+  GENERATING
+  READY
+  FAILED
+}
+
+enum ApiKeyProvider {
+  GEMINI
+  ELEVENLABS
+  // BYOK phase for chat/script generation — see src/lib/anthropic.ts. Once
+  // the business buys its own token pool, this can go back to a shared
+  // platform key.
+  ANTHROPIC
+  // Trial swap: chat/script generation runs on the user's own OpenAI key
+  // for now instead of Gemini (see src/lib/openai.ts) — Gemini hit its
+  // free-tier daily quota during testing. Gemini stays the provider for
+  // image/voice generation either way.
+  OPENAI
+}
+
+enum RenderStatus {
+  QUEUED
+  RENDERING
+  COMPLETE
+  FAILED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  // Null for Google-only accounts — the credentials provider (email+
+  // password) is only offered once this is set. scrypt hash, see
+  // src/lib/password.ts.
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+
+  accounts Account[]
+  sessions Session[]
+  apiKeys  ApiKey[]
+  projects Project[]
+}
+
+// Auth.js (NextAuth v5) adapter models — database session strategy.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// BYOK: user-supplied provider keys, encrypted at rest. Never used for our
+// own Claude calls — only for the user's own Gemini/ElevenLabs generation.
+model ApiKey {
+  id            String         @id @default(cuid())
+  userId        String
+  provider      ApiKeyProvider
+  encryptedKey  String
+  createdAt     DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  userId      String
+  category    String
+  aspectRatio AspectRatio
+  topic       String?
+  status      ProjectStatus @default(DRAFT)
+  // References an id in the fixed catalog (src/lib/musicLibrary.ts), not a
+  // row in this database — there's no per-user music upload.
+  musicTrackId String?
+
+  // Project memory for the script-generation prompt (src/lib/prompts) — set
+  // once and reused every turn instead of re-inferred from scratch.
+  platform       Platform  @default(TIKTOK)
+  audience       String?
+  tone           String?
+  styleBlock     String?
+  characters     String?
+  durationSeconds Int?
+  language        String?
+  chatStage       ChatStage @default(NICHE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatMessages ChatMessage[]
+  scenes       Scene[]
+  renderJobs   RenderJob[]
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  projectId String
+  role      ChatRole
+  content   String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Scene {
+  id       String @id @default(cuid())
+  projectId String
+  order    Int
+
+  script      String
+  imagePrompt String?
+  imageUrl    String?
+  imageStatus AssetStatus @default(PENDING)
+
+  voiceoverText   String?
+  voiceoverUrl    String?
+  voiceoverStatus AssetStatus @default(PENDING)
+
+  durationMs Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, order])
+}
+
+model RenderJob {
+  id        String       @id @default(cuid())
+  projectId String
+  status    RenderStatus @default(QUEUED)
+  outputUrl String?
+  error     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}

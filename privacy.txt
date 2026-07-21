@@ -1,0 +1,93 @@
+Krispy Privacy Policy
+Last Updated: July 21, 2026
+
+1. Introduction  
+Welcome to Krispy. We respect your privacy and are committed to protecting your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered content production platform (“Service”). By accessing or using Krispy, you agree to the terms of this Privacy Policy.
+
+2. Scope  
+This Privacy Policy applies to all users of Krispy, including visitors, registered users, and customers. It governs the collection and processing of personal data through our website, applications, and related services.
+
+3. Information We Collect  
+We collect various types of information to provide and improve our Service, including:
+
+- Account Information: When you register, we collect your name, email address, and other contact details necessary to create and manage your account.  
+- User Content: Any content you upload or create using Krispy, including prompts, scripts, images, videos, audio, subtitles, and project files. Krispy does not claim ownership of your creative content.  
+- API Keys: If you connect API keys from third-party AI providers, these keys remain your property. We encrypt stored API keys and do not intentionally expose them after saving.  
+- Payment Information: Payment data is processed exclusively by authorized third-party payment providers. Krispy does not store or process your payment information directly.  
+- Usage Data: Information about your interactions with the Service, including log data, usage statistics, and error reports.  
+- Device Information: Data about the device you use to access the Service, such as hardware model, operating system, and browser type.  
+- Cookies and Similar Technologies: We use cookies and related technologies to enhance user experience and analyze usage patterns. Details are provided in Section 14.
+
+4. How We Use Information  
+We use your information to operate, maintain, and improve Krispy, including to:  
+- Provide and personalize the Service;  
+- Authenticate and manage your account;  
+- Process transactions and subscriptions;  
+- Communicate with you, including customer support and marketing communications (where permitted);  
+- Monitor and analyze usage to improve performance and security;  
+- Comply with legal obligations.
+
+5. BYOK (Bring Your Own Keys)  
+Krispy operates under a Bring Your Own Keys (BYOK) model. Users connect API keys issued by third-party AI providers to access AI functionalities. These keys remain your property and are encrypted during storage. Krispy does not access, use, or disclose your API keys except to fulfill your requests via the third-party providers. You are responsible for compliance with the terms and conditions of those third-party AI providers.
+
+6. AI Providers and Third-Party Services  
+Our Service integrates with third-party AI providers and other external services. We do not control their policies, content, or availability. Use of such services is subject to their respective terms. Krispy is not liable for any issues arising from third-party services.
+
+7. Legal Bases for Processing  
+Where applicable, we process your personal data based on the following legal grounds:  
+- Your consent;  
+- Performance of a contract with you;  
+- Compliance with legal obligations;  
+- Legitimate interests pursued by Krispy, provided these do not override your rights.
+
+8. Data Sharing  
+We do not sell your personal data. We may share your information with:  
+- Service providers and partners who perform services on our behalf under confidentiality agreements;  
+- Third-party AI providers to process your requests;  
+- Legal authorities when required by law or to protect rights;  
+- Affiliates and successors in the event of a merger or acquisition.
+
+9. International Data Transfers  
+Your information may be transferred to and processed in countries outside your residence, including the United States. We implement appropriate safeguards to protect your data in accordance with applicable laws.
+
+10. Data Retention  
+We retain your personal data only as long as necessary to provide the Service, comply with legal obligations, resolve disputes, and enforce agreements. User content is retained according to your account status and applicable retention policies.
+
+11. Security Measures  
+We implement reasonable administrative, technical, and physical safeguards to protect your information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission or storage is completely secure.
+
+12. User Rights  
+Depending on your jurisdiction, you may have rights regarding your personal data, including:  
+- Access to your data;  
+- Correction of inaccurate or incomplete data;  
+- Deletion of your data, subject to legal exceptions;  
+- Data portability;  
+- Restriction of processing;  
+- Objection to processing;  
+- Withdrawal of consent where applicable.  
+To exercise these rights, please contact us as described below.
+
+13. Children’s Privacy  
+Our Service is not intended for individuals under the age of 16. We do not knowingly collect personal information from children. If we become aware of such data, we will take steps to delete it.
+
+14. Cookies and Similar Technologies  
+We use cookies and similar technologies to enhance functionality, analyze usage, and deliver personalized content. You may manage cookie preferences through your browser settings. For more information, please refer to our Cookie Policy.
+
+15. Marketing Communications  
+With your consent where required, we may send you promotional emails and updates about Krispy. You may opt-out of marketing communications at any time by following the unsubscribe instructions included in such messages.
+
+16. California Privacy Rights  
+California residents have specific rights under the California Consumer Privacy Act (CCPA), including the right to know about personal information collected, the right to delete personal information, and the right to opt-out of the sale of personal information. Krispy does not sell personal information.
+
+17. EEA/UK Privacy Rights  
+If you are located in the European Economic Area or the United Kingdom, you have additional rights under the GDPR, including the right to lodge a complaint with a supervisory authority.
+
+18. Changes to this Privacy Policy  
+We may update this Privacy Policy from time to time. Material changes will be communicated via the Service or email. Continued use of Krispy after changes indicates acceptance of the updated policy.
+
+19. Contact Information  
+For questions or to exercise your rights, please contact:  
+legal@krispy.ai
+
+Important Notice  
+This Privacy Policy is provided as a professional template for early-stage SaaS products. Before deploying in production or accepting customers, it should be reviewed and adapted by qualified legal counsel to reflect Krispy’s jurisdiction, corporate structure, privacy practices, and business model.
