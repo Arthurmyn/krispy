@@ -1,6 +1,6 @@
 // Turns a raw provider error (status + body) into a short, human-readable
 // message instead of dumping the provider's JSON straight into the UI.
-// Shared across chat (Gemini/OpenAI) and image/voice (Gemini/ElevenLabs)
+// Shared across chat (Gemini) and image/voice (Gemini/ElevenLabs)
 // calls — they're different APIs but the same handful of failure shapes
 // (quota, bad key, rate limit) show up everywhere.
 export function describeProviderError(

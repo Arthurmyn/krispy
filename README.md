@@ -1,32 +1,32 @@
 # Krispy
 
 Turns a video topic into a finished, ready-to-post short-form video
-(YouTube Shorts / Reels / TikTok): chat with ChatGPT to land on a topic and
+(YouTube Shorts / Reels / TikTok): chat with Gemini to land on a topic and
 scene-by-scene script, review/regenerate AI images and voiceover per scene
-(BYOK — your own OpenAI/Gemini/ElevenLabs key), then automatically assemble
+(BYOK — your own Gemini/ElevenLabs key), then automatically assemble
 everything into a downloadable MP4 via Remotion.
 
 **BYOK phase, current state:** every generative call — chat/scripting
 included — runs on keys each user connects themselves in Settings, not a
-shared platform key. Chat is a trial swap to OpenAI for now: `src/lib/openai.ts`
-calls the user's own key (`getUserProviderKey(userId, "OPENAI")` in
-`src/lib/providers.ts`) via `chat/completions`, with the same stage-gated
-tool-calling the Gemini/Claude versions used. `src/lib/gemini.ts` and
-`src/lib/anthropic.ts`, along with the `GEMINI`/`ANTHROPIC` BYOK providers
-for chat, are still in place unused, so switching chat back — or later to a
-shared platform-funded key — is a contained change. Gemini stays the
-provider for image/voice generation either way.
+shared platform key. Chat is a trial swap to Gemini for now: `src/lib/gemini.ts`
+calls the user's own key (`getUserProviderKey(userId, "GEMINI")` in
+`src/lib/providers.ts`) via `generateContent`, with the same stage-gated
+tool-calling the Claude version used. `src/lib/anthropic.ts` and the
+`ANTHROPIC` BYOK provider are still in place unused, so switching chat back
+to Claude — or later to a shared platform-funded key — is a contained change.
+(An earlier OpenAI trial swap was tried and reverted; `src/lib/openai.ts` is
+gone, though the now-unused `OPENAI` BYOK enum value stays in the DB schema
+since Postgres can't drop enum values without recreating the type.)
 
 ## Stack
 
 - Next.js (App Router, TypeScript) — UI + API routes
 - Prisma + Postgres — data model (`prisma/schema.prisma`)
 - Auth.js (NextAuth v5), Google OAuth, database sessions
-- OpenAI `chat/completions` (with function calling) — topic suggestion,
-  script writing, conversational editing, on the user's own BYOK OpenAI key
-  (`src/lib/openai.ts`, `src/app/api/projects/[id]/chat`). Trial swap from
-  Gemini — `src/lib/gemini.ts` and `src/lib/anthropic.ts` still exist,
-  unused, for an easy revert.
+- Gemini `generateContent` (with function calling) — topic suggestion,
+  script writing, conversational editing, on the user's own BYOK Gemini key
+  (`src/lib/gemini.ts`, `src/app/api/projects/[id]/chat`). Trial swap from
+  Claude — `src/lib/anthropic.ts` still exists, unused, for an easy revert.
 - BYOK provider calls for image/voice generation (`src/lib/providers.ts`) —
   Gemini for images/voice, ElevenLabs optional for premium voice. Keys are
   stored AES-256-GCM encrypted (`src/lib/crypto.ts`)

@@ -31,7 +31,7 @@ const FEATURES = [
   {
     icon: MessagesSquare,
     title: "Chat your way to a script",
-    body: "Land on a niche, a visual style, and a tight scene-by-scene script by talking it through with ChatGPT, stage by stage — no blank-page staring, no re-explaining yourself every turn.",
+    body: "Land on a niche, a visual style, and a tight scene-by-scene script by talking it through with Gemini, stage by stage — no blank-page staring, no re-explaining yourself every turn.",
   },
   {
     icon: ImageIcon,
@@ -83,7 +83,7 @@ const PRICING_TIERS = [
       "Full chat → script → scenes pipeline",
       "Up to 3 rendered videos / month",
       "Watermark on exports",
-      "BYOK — your own OpenAI / Gemini / ElevenLabs keys",
+      "BYOK — your own Gemini / ElevenLabs keys",
     ],
     cta: "Start free",
   },
@@ -120,11 +120,11 @@ const PRICING_TIERS = [
 const FAQS = [
   {
     q: "What does BYOK mean, and why do I need my own API keys?",
-    a: "BYOK = Bring Your Own Key. Krispy runs your chat, image, and voiceover generation through your own OpenAI and Gemini (and optionally ElevenLabs) keys instead of reselling AI access. We never see the generation costs — you do, directly with the provider — which is what keeps our own pricing low.",
+    a: "BYOK = Bring Your Own Key. Krispy runs your chat, image, and voiceover generation through your own Gemini (and optionally ElevenLabs) key instead of reselling AI access. We never see the generation costs — you do, directly with the provider — which is what keeps our own pricing low.",
   },
   {
     q: "Which AI providers do I actually need?",
-    a: "An OpenAI key for chat and scripts, and a Google Gemini key for images and voiceover — Google's free tier is enough for a handful of shorts a month. ElevenLabs is optional, only if you want a more premium voice.",
+    a: "Just a Google Gemini key to start — it covers chat, images, and voiceover, and Google's free tier is enough for a handful of shorts a month. ElevenLabs is optional, only if you want a more premium voice.",
   },
   {
     q: "Is my API key safe with you?",
@@ -251,10 +251,10 @@ export default function LandingPage() {
             We&apos;re not reselling AI generation
           </h2>
           <p className="max-w-xl text-sm leading-relaxed text-text-secondary">
-            Everything runs on your own keys — OpenAI for chat and scripts,
-            Gemini for images and voiceover (Google&apos;s free tier covers a
-            lot of shorts), and ElevenLabs if you want a premium voice. We
-            just build the automation on top — never billed through us.
+            Everything runs on your own keys — Gemini for chat, scripts,
+            images and voiceover (Google&apos;s free tier covers a lot of
+            shorts), and ElevenLabs if you want a premium voice. We just
+            build the automation on top — never billed through us.
           </p>
           <Link
             href="/app/settings?tab=api-keys"

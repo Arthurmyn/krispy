@@ -5,7 +5,7 @@ import { getSessionUserId } from "@/lib/session";
 import { encryptApiKey } from "@/lib/crypto";
 
 const bodySchema = z.object({
-  provider: z.enum(["GEMINI", "ELEVENLABS", "ANTHROPIC", "OPENAI"]),
+  provider: z.enum(["GEMINI", "ELEVENLABS", "ANTHROPIC"]),
   apiKey: z.string().min(1),
 });
 

@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { generateChatCompletion } from "@/lib/openai";
+import { generateChatCompletion } from "@/lib/gemini";
 import { getUserProviderKey } from "@/lib/providers";
 import { buildSystemPrompt, getToolsForStage } from "@/lib/prompts";
 
 const chatRequestSchema = z.object({
   message: z.string().min(1),
   // Style-reference photos — analyzed for this turn only (see
-  // src/lib/openai.ts), not persisted; ChatMessage only stores text.
+  // src/lib/gemini.ts), not persisted; ChatMessage only stores text.
   images: z
     .array(z.object({ base64: z.string(), mimeType: z.string() }))
     .optional(),
@@ -28,14 +28,12 @@ export async function POST(
   });
   if (!project) return new NextResponse("Not found", { status: 404 });
 
-  // Trial swap: chat runs on the user's own OpenAI key for now instead of
-  // Gemini (see src/lib/openai.ts) — Gemini's free tier hit its daily
-  // request cap during testing. Fail fast with a clear message if they
-  // haven't connected one yet, rather than letting the request blow up
-  // further down.
+  // Chat runs on the user's own Gemini key (see src/lib/gemini.ts). Fail
+  // fast with a clear message if they haven't connected one yet, rather
+  // than letting the request blow up further down.
   let apiKey: string;
   try {
-    apiKey = await getUserProviderKey(userId, "OPENAI");
+    apiKey = await getUserProviderKey(userId, "GEMINI");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 400 });
@@ -87,6 +85,17 @@ export async function POST(
 
   const assistantText = result.text;
   const toolUse = result.toolCall;
+
+  // Gemini occasionally returns a candidate with no text and no function
+  // call (e.g. a transient blank generation) — silently doing nothing left
+  // the user's message sitting unanswered with no explanation. Treat it the
+  // same as a provider failure instead.
+  if (!assistantText && !toolUse) {
+    return NextResponse.json(
+      { error: "Gemini didn't return a reply. Try sending your message again." },
+      { status: 502 },
+    );
+  }
 
   if (assistantText) {
     await prisma.chatMessage.create({

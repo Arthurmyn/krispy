@@ -62,10 +62,10 @@ enum ApiKeyProvider {
   // the business buys its own token pool, this can go back to a shared
   // platform key.
   ANTHROPIC
-  // Trial swap: chat/script generation runs on the user's own OpenAI key
-  // for now instead of Gemini (see src/lib/openai.ts) — Gemini hit its
-  // free-tier daily quota during testing. Gemini stays the provider for
-  // image/voice generation either way.
+  // No longer offered in Settings — the OpenAI trial swap was reverted back
+  // to Gemini for chat. Value stays in the enum (Postgres can't drop enum
+  // values without recreating the type) so existing ApiKey rows saved during
+  // the trial stay valid; nothing in the app writes or reads it anymore.
   OPENAI
 }
 

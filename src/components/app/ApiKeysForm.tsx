@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Provider = "GEMINI" | "ELEVENLABS" | "ANTHROPIC" | "OPENAI";
+type Provider = "GEMINI" | "ELEVENLABS" | "ANTHROPIC";
 
 const PROVIDERS: {
   value: Provider;
@@ -13,21 +13,8 @@ const PROVIDERS: {
   steps: string[];
 }[] = [
   {
-    value: "OPENAI",
-    label: "OpenAI (chat & script generation)",
-    required: true,
-    keyPageUrl: "https://platform.openai.com/api-keys",
-    keyPageLabel: "platform.openai.com/api-keys",
-    steps: [
-      "Sign in (or create an account) at the OpenAI Platform.",
-      'Go to API keys and click "Create new secret key".',
-      "Copy the key that appears — it starts with \"sk-…\".",
-      "Paste it into the field below and click Save.",
-    ],
-  },
-  {
     value: "GEMINI",
-    label: "Gemini (images + voice)",
+    label: "Gemini (chat, script generation, images + voice)",
     required: true,
     keyPageUrl: "https://aistudio.google.com/apikey",
     keyPageLabel: "aistudio.google.com/apikey",
@@ -45,7 +32,7 @@ const PROVIDERS: {
     keyPageUrl: "https://console.anthropic.com/settings/keys",
     keyPageLabel: "console.anthropic.com/settings/keys",
     steps: [
-      "Chat currently runs on your OpenAI key above — this is on hold for a trial run.",
+      "Chat currently runs on your Gemini key above — this is on hold for a trial run.",
       "Sign in (or create an account) at the Anthropic Console.",
       'Go to Settings → API Keys and click "Create Key".',
       "Copy the key that appears — it starts with \"sk-ant-…\".",
