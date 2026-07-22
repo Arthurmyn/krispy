@@ -1,5 +1,5 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
+import GoogleProvider from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
@@ -24,6 +24,15 @@ const emailPasswordProvider = Credentials({
     const valid = await verifyPassword(password, user.passwordHash);
     return valid ? user : null;
   },
+});
+
+// Auth.js v5 auto-detects env vars named AUTH_GOOGLE_ID/AUTH_GOOGLE_SECRET
+// when a provider is passed unconfigured — this project's .env (and the
+// Vercel setup docs) use the v4-style GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET
+// names instead, so pass them explicitly rather than renaming everything.
+const Google = GoogleProvider({
+  clientId: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
 });
 
 // Dev-only: sign in with just an email, no password, no Google OAuth app
