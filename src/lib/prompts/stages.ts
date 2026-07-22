@@ -2,37 +2,60 @@ import type { ChatStage } from "@/generated/prisma/client";
 
 export const STAGE_INSTRUCTIONS: Record<ChatStage, string> = {
   NICHE: `CURRENT STAGE: Niche.
-Your only goal right now is to confirm the content niche/category this video belongs to (e.g.
-"life hacks", "tech explainers", "history storytelling", "productivity tips"). Use the initial
-description in PROJECT MEMORY as your starting point. If it's already a clear niche, confirm it
-back in one line. If it's vague or covers multiple angles, ask 1-2 clarifying questions or offer a
-short list of concrete niche options. Once the user agrees, call confirm_niche with it. Do not
-discuss visual style, duration, language, or a specific video idea yet — those come later.`,
+Your goal is to land on a content niche/category by analyzing a reference video the user wants to
+emulate the style of.
+- If they haven't given you a transcript yet, ask them to paste the transcript of that reference
+  video (plain text, pasted directly into chat — no file upload needed).
+- Once you have a transcript (or, if they'd rather just describe the reference in words, once
+  they've given you enough to go on), produce one structured breakdown covering:
+  * Niche: the content category/format.
+  * Tone: voice, mood, how it addresses the viewer.
+  * Formula: the structural arc — hook, how it withholds/delivers the payoff, escalation pattern,
+    what specifics (numbers, sources, named examples) it uses for credibility.
+  * "Villain"/tension source: what creates stakes or intrigue — a person, a system, an absence, a
+    misconception.
+  * Pacing: approximate length and rhythm.
+  Write this as labeled bullet points, in the user's language, using the initial description in
+  PROJECT MEMORY as extra context if relevant.
+- Once the niche itself (the category, not the full breakdown) is clear and the user's on board,
+  call confirm_niche with it. Do not discuss visual style, duration, language, or a specific video
+  idea yet — those come later.`,
 
-  STYLE: `CURRENT STAGE: Style.
-The niche is locked (see PROJECT MEMORY). Now agree on three things with the user before moving
-on: visual style, target duration, and language.
-- Visual style: if they haven't specified one, suggest a single option that fits the niche and
-  ask if it works.
+  IDEA: `CURRENT STAGE: Idea.
+Niche is locked (see PROJECT MEMORY). Using that niche and the reference breakdown from the Niche
+stage, propose exactly 5 concrete video ideas within that niche, numbered 1-5, each a short title
+plus a one-line hook. Ask the user to pick one by number, or describe their own idea instead if
+none of the 5 fit. If they pick a number, confirm which idea you're locking in, in one line. If
+they give their own idea, work from that instead. Once a specific idea is settled, call
+confirm_topic with it. Do not discuss visual style or write any script yet — those come later.`,
+
+  STYLE: `CURRENT STAGE: Style passport.
+Niche and idea are locked (see PROJECT MEMORY). Now build a visual style passport for this video.
+- Ask the user to upload 5 frames from the reference video (or any reference images that show the
+  look they want) if they haven't already — the chat's attach-image button supports multiple
+  files at once.
+- Once you have the frames (or, if they'd rather skip straight to describing it in words, once
+  they've given you enough to go on), analyze them and write a detailed style passport covering:
+  color palette, lighting, composition/framing conventions, character/subject rendering style,
+  linework or texture qualities, and any recurring visual motifs.
+- Distill that passport into a compact style block: one dense English phrase capturing the
+  essentials, meant to be appended verbatim to every scene's image prompt for the rest of this
+  project.
+- If there are recurring characters or objects, describe each once in fixed English wording you'll
+  reuse exactly every time they reappear.
+Show the user both the passport and the style block, and confirm it works for them. Once agreed,
+call lock_style with styleBlock (required), characters (optional), and tone (optional, a few
+words). Do not discuss duration or language here — that's the next stage. Do not write the script
+yet.`,
+
+  PARAMETERS: `CURRENT STAGE: Parameters.
+Niche, idea, and style are locked (see PROJECT MEMORY). Now agree on two things with the user:
 - Duration: ask (or infer from the niche/platform) a target total length in seconds — typical
   shorts run 20-90s depending on platform pacing.
 - Language: confirm what language the voiceover/subtitles should be written in (usually the
   language the user is chatting in, but ask if unclear).
-Once all three are agreed, call lock_style with:
-- styleBlock: one compact English phrase you will append, verbatim, to every scene's image prompt
-  for the rest of this project — this is what keeps the short visually coherent.
-- characters (optional): recurring characters/objects, each described once in fixed English
-  wording you'll reuse exactly every time they reappear.
-- tone (optional): the tone you settled on, in a few words.
-- durationSeconds and language as agreed above.
-Do not land on a specific video idea or write the script yet.`,
-
-  IDEA: `CURRENT STAGE: Idea.
-Niche and style are locked (see PROJECT MEMORY). Now land on a specific, concrete video idea
-within that niche. If the user's idea is already specific, confirm it back to them in one line.
-If it's vague, either ask 1-2 clarifying questions or offer 3-5 concrete angle options (short
-title + hook line each) and ask them to pick one. Once the user has agreed on a specific idea,
-call confirm_topic with it. Do not write any script yet — that happens in the next stage.`,
+Once both are agreed, call set_parameters with durationSeconds and language. Do not write the
+script yet — that happens next.`,
 
   SCRIPT: `CURRENT STAGE: Script.
 Niche, style, and idea are locked (see PROJECT MEMORY) — use them, don't re-ask. Write the full
@@ -65,7 +88,16 @@ adjust pacing, or add/remove a beat. Apply the same self-check from the Script s
 re-finalizing. When they're happy with a revision, call propose_scenes again with the complete
 updated scene list (not a diff) — it replaces the previous scenes.
 
-Once scenes are proposed, the user reviews and generates each scene's image/voiceover outside
-this chat (in the Image tab), then does one final approval pass over everything before moving to
-editing (music/render) — that approval step lives in the UI, not here.`,
+Once scenes are proposed, the user reviews and generates each scene's image outside this chat (in
+the Image tab), then approves all the images — that approval step lives in the UI, not here, and
+triggers the Voiceover review stage automatically.`,
+
+  VOICEOVER_REVIEW: `CURRENT STAGE: Voiceover review.
+The user just approved every scene's image. See CURRENT SCENES below for the full voiceover
+script. Present it to them now, scene by scene (Scene 1, Scene 2, ...), exactly as it stands, and
+ask them to confirm it as-is or request wording changes. If they ask for edits, apply them and
+show the complete updated script again before finalizing. Once they're happy with every scene's
+wording, call confirm_voiceover_text with the complete list — sceneNumber and voiceoverText for
+every scene, not just the ones that changed. After this, generating the actual voiceover audio and
+picking voice parameters happens in the VoiceOver tab, outside this chat.`,
 };

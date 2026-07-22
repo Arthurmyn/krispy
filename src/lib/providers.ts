@@ -77,16 +77,31 @@ export async function generateSceneImage(
   };
 }
 
+// ElevenLabs' documented voice_settings knobs (v1 text-to-speech). No
+// "speed" field here — that's not part of the standard voice_settings API,
+// unlike stability/similarity/style which are.
+export type ElevenLabsVoiceSettings = {
+  stability?: number;
+  similarityBoost?: number;
+  style?: number;
+  useSpeakerBoost?: boolean;
+};
+
 export async function generateVoiceover(
   userId: string,
   text: string,
-  options?: { provider?: "GEMINI" | "ELEVENLABS"; voiceId?: string },
+  options?: {
+    provider?: "GEMINI" | "ELEVENLABS";
+    voiceId?: string;
+    elevenLabsSettings?: ElevenLabsVoiceSettings;
+  },
 ): Promise<{ audioBase64: string; mimeType: string }> {
   const provider = options?.provider ?? "GEMINI";
   const apiKey = await getUserProviderKey(userId, provider);
 
   if (provider === "ELEVENLABS") {
     const voiceId = options?.voiceId ?? "21m00Tcm4TlvDq8ikWAM";
+    const settings = options?.elevenLabsSettings;
     const res = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
       {
@@ -95,7 +110,18 @@ export async function generateVoiceover(
           "Content-Type": "application/json",
           "xi-api-key": apiKey,
         },
-        body: JSON.stringify({ text, model_id: "eleven_multilingual_v2" }),
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: settings
+            ? {
+                stability: settings.stability,
+                similarity_boost: settings.similarityBoost,
+                style: settings.style,
+                use_speaker_boost: settings.useSpeakerBoost,
+              }
+            : undefined,
+        }),
       },
     );
     if (!res.ok) {
@@ -108,6 +134,7 @@ export async function generateVoiceover(
     };
   }
 
+  const voiceName = options?.voiceId;
   const res = await fetch(
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent",
     {
@@ -118,7 +145,12 @@ export async function generateVoiceover(
       },
       body: JSON.stringify({
         contents: [{ parts: [{ text }] }],
-        generationConfig: { responseModalities: ["AUDIO"] },
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: voiceName
+            ? { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
+            : undefined,
+        },
       }),
     },
   );

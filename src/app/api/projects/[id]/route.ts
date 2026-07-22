@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
+import { getUserProviderKey } from "@/lib/providers";
+import { runAssistantTurn } from "@/lib/chatTurn";
 import { MUSIC_LIBRARY } from "@/lib/musicLibrary";
 
 export async function GET(
@@ -49,7 +51,10 @@ export async function PATCH(
   const { id } = await params;
   const project = await prisma.project.findFirst({
     where: { id, userId },
-    include: { scenes: true },
+    include: {
+      scenes: { orderBy: { order: "asc" } },
+      chatMessages: { orderBy: { createdAt: "asc" } },
+    },
   });
   if (!project) return new NextResponse("Not found", { status: 404 });
 
@@ -58,26 +63,66 @@ export async function PATCH(
   );
 
   if (approveScenes) {
+    // Only images gate this approval now — voiceover text gets reviewed in
+    // chat right after (see below), audio generation happens later in the
+    // VoiceOver tab, so it can't be a precondition here anymore.
     const allReady =
       project.scenes.length > 0 &&
-      project.scenes.every(
-        (s) => s.imageStatus === "READY" && s.voiceoverStatus === "READY",
-      );
+      project.scenes.every((s) => s.imageStatus === "READY");
     if (!allReady) {
       return NextResponse.json(
-        { error: "Every scene needs a ready image and voiceover first." },
+        { error: "Every scene needs a ready image first." },
         { status: 400 },
       );
     }
   }
 
-  const updated = await prisma.project.update({
+  await prisma.project.update({
     where: { id },
     data: {
       ...(musicTrackId !== undefined ? { musicTrackId } : {}),
-      ...(approveScenes ? { status: "READY_TO_RENDER" } : {}),
+      ...(approveScenes ? { status: "READY_TO_RENDER", chatStage: "VOICEOVER_REVIEW" } : {}),
     },
   });
 
-  return NextResponse.json({ project: updated });
+  // Proactively post the voiceover-review message in chat, the same way a
+  // user-driven turn would — best-effort: if it fails (no key, rate limit),
+  // the approval itself still stands and the user can trigger it by typing
+  // in chat manually.
+  let voiceoverReviewError: string | null = null;
+  if (approveScenes) {
+    try {
+      const apiKey = await getUserProviderKey(userId, "GEMINI");
+      await runAssistantTurn({
+        apiKey,
+        projectId: id,
+        project: { ...project, chatStage: "VOICEOVER_REVIEW" },
+        scenes: project.scenes,
+        history: [
+          ...project.chatMessages.map((m) => ({
+            role: m.role === "USER" ? ("user" as const) : ("model" as const),
+            text: m.content,
+          })),
+          {
+            role: "user" as const,
+            text: "I've approved all the scene images. Please continue.",
+          },
+        ],
+      });
+    } catch (error) {
+      voiceoverReviewError =
+        error instanceof Error ? error.message : "Couldn't start the voiceover review.";
+    }
+  }
+
+  const updatedProject = await prisma.project.findUniqueOrThrow({
+    where: { id },
+    include: {
+      scenes: { orderBy: { order: "asc" } },
+      chatMessages: { orderBy: { createdAt: "asc" } },
+      renderJobs: { orderBy: { createdAt: "desc" }, take: 1 },
+    },
+  });
+
+  return NextResponse.json({ project: updatedProject, voiceoverReviewError });
 }

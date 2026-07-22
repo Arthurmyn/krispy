@@ -34,13 +34,21 @@ enum Platform {
 // Drives the script-generation stage machine (src/lib/prompts). Each stage
 // exposes exactly one tool to the model, so it can't finalize an idea before
 // niche + style are locked in, or scenes before the idea is locked in.
-// Order: Niche -> Style (passport, duration, language) -> Idea -> Script.
+// Order: Niche -> Idea -> Style (passport) -> Parameters (duration, language)
+// -> Script -> Script review -> Voiceover review (after images are approved).
 enum ChatStage {
   NICHE
   STYLE
   IDEA
+  // Duration + language, split out of STYLE so they're asked as their own
+  // step instead of bundled with the visual style passport.
+  PARAMETERS
   SCRIPT
   SCRIPT_REVIEW
+  // Fired automatically once every scene's image is approved (see
+  // approveScenes in src/app/api/projects/[id]/route.ts) — the assistant
+  // proactively posts the full voiceover script for confirmation/edits.
+  VOICEOVER_REVIEW
 }
 
 enum ChatRole {

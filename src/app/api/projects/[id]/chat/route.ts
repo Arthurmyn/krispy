@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { generateChatCompletion } from "@/lib/gemini";
 import { getUserProviderKey } from "@/lib/providers";
-import { buildSystemPrompt, getToolsForStage } from "@/lib/prompts";
+import { runAssistantTurn } from "@/lib/chatTurn";
 
 const chatRequestSchema = z.object({
   message: z.string().min(1),
@@ -25,6 +24,7 @@ export async function POST(
   const { id: projectId } = await params;
   const project = await prisma.project.findFirst({
     where: { id: projectId, userId },
+    include: { scenes: { orderBy: { order: "asc" } } },
   });
   if (!project) return new NextResponse("Not found", { status: 404 });
 
@@ -60,12 +60,13 @@ export async function POST(
     orderBy: { createdAt: "asc" },
   });
 
-  let result: Awaited<ReturnType<typeof generateChatCompletion>>;
+  let result: Awaited<ReturnType<typeof runAssistantTurn>>;
   try {
-    result = await generateChatCompletion({
+    result = await runAssistantTurn({
       apiKey,
-      systemPrompt: buildSystemPrompt(project),
-      tools: getToolsForStage(project.chatStage),
+      projectId,
+      project,
+      scenes: project.scenes,
       history: history.map((m, index) => ({
         role: m.role === "USER" ? ("user" as const) : ("model" as const),
         text: m.content,
@@ -97,19 +98,26 @@ export async function POST(
     );
   }
 
-  if (assistantText) {
-    await prisma.chatMessage.create({
-      data: { projectId, role: "ASSISTANT", content: assistantText },
-    });
-  }
+  // runAssistantTurn already persisted the assistant ChatMessage (if any).
 
   let scenesCreated = false;
 
+  // Stage order: Niche -> Idea -> Style -> Parameters -> Script -> Script review.
+  // Idea comes right after Niche so the user lands on a specific video idea
+  // before spending effort on a style passport for it.
   if (toolUse?.name === "confirm_niche") {
     const input = toolUse.input as { niche: string };
     await prisma.project.update({
       where: { id: projectId },
-      data: { category: input.niche, chatStage: "STYLE" },
+      data: { category: input.niche, chatStage: "IDEA" },
+    });
+  }
+
+  if (toolUse?.name === "confirm_topic") {
+    const input = toolUse.input as { topic: string };
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { topic: input.topic, chatStage: "STYLE" },
     });
   }
 
@@ -118,8 +126,6 @@ export async function POST(
       styleBlock: string;
       characters?: string;
       tone?: string;
-      durationSeconds?: number;
-      language?: string;
     };
     await prisma.project.update({
       where: { id: projectId },
@@ -127,18 +133,20 @@ export async function POST(
         styleBlock: input.styleBlock,
         characters: input.characters,
         tone: input.tone,
-        durationSeconds: input.durationSeconds,
-        language: input.language,
-        chatStage: "IDEA",
+        chatStage: "PARAMETERS",
       },
     });
   }
 
-  if (toolUse?.name === "confirm_topic") {
-    const input = toolUse.input as { topic: string };
+  if (toolUse?.name === "set_parameters") {
+    const input = toolUse.input as { durationSeconds: number; language: string };
     await prisma.project.update({
       where: { id: projectId },
-      data: { topic: input.topic, chatStage: "SCRIPT" },
+      data: {
+        durationSeconds: input.durationSeconds,
+        language: input.language,
+        chatStage: "SCRIPT",
+      },
     });
   }
 
@@ -164,6 +172,24 @@ export async function POST(
       }),
     ]);
     scenesCreated = true;
+  }
+
+  if (toolUse?.name === "confirm_voiceover_text") {
+    const input = toolUse.input as {
+      scenes: { sceneNumber: number; voiceoverText: string }[];
+    };
+    await prisma.$transaction([
+      ...input.scenes.map((s) =>
+        prisma.scene.updateMany({
+          where: { projectId, order: s.sceneNumber - 1 },
+          data: { voiceoverText: s.voiceoverText },
+        }),
+      ),
+      prisma.project.update({
+        where: { id: projectId },
+        data: { chatStage: "SCRIPT_REVIEW" },
+      }),
+    ]);
   }
 
   const updatedProject = await prisma.project.findUniqueOrThrow({

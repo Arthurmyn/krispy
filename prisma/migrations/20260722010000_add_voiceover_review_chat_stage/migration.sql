@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "ChatStage" ADD VALUE 'VOICEOVER_REVIEW';

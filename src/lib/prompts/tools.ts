@@ -37,8 +37,9 @@ export const CONFIRM_TOPIC_TOOL: Anthropic.Tool = {
 export const LOCK_STYLE_TOOL: Anthropic.Tool = {
   name: "lock_style",
   description:
-    "Lock in the visual style passport, duration, and language once the user has agreed on " +
-    "them. Call this once, after the niche is confirmed and before landing on a specific idea.",
+    "Lock in the visual style passport once the user has agreed on it. Call this once, after " +
+    "the topic/idea is confirmed. Duration and language are handled separately, in the next " +
+    "stage — don't ask about them here.",
   input_schema: {
     type: "object",
     properties: {
@@ -52,6 +53,21 @@ export const LOCK_STYLE_TOOL: Anthropic.Tool = {
         description: "Recurring characters/objects and their fixed English description, if any",
       },
       tone: { type: "string", description: "The agreed tone, in a few words" },
+    },
+    required: ["styleBlock"],
+  },
+};
+
+// Split out of lock_style so duration/language get asked as their own step
+// instead of being bundled into the visual style passport conversation.
+export const SET_PARAMETERS_TOOL: Anthropic.Tool = {
+  name: "set_parameters",
+  description:
+    "Lock in the target duration and language once the user has agreed on them. Call this once, " +
+    "after the style passport is locked and before writing the script.",
+  input_schema: {
+    type: "object",
+    properties: {
       durationSeconds: {
         type: "number",
         description: "Target total video length in seconds, agreed with the user",
@@ -61,7 +77,7 @@ export const LOCK_STYLE_TOOL: Anthropic.Tool = {
         description: "The language the voiceover/subtitles will be written in",
       },
     },
-    required: ["styleBlock"],
+    required: ["durationSeconds", "language"],
   },
 };
 
@@ -98,6 +114,41 @@ export const PROPOSE_SCENES_TOOL: Anthropic.Tool = {
             },
           },
           required: ["script", "imagePrompt"],
+        },
+      },
+    },
+    required: ["scenes"],
+  },
+};
+
+// Fires once, right after the user approves every scene's image (triggered
+// server-side, see approveScenes in src/app/api/projects/[id]/route.ts) —
+// the assistant proactively posts the full voiceover script and this tool
+// finalizes it once the user confirms or requests edits.
+export const CONFIRM_VOICEOVER_TEXT_TOOL: Anthropic.Tool = {
+  name: "confirm_voiceover_text",
+  description:
+    "Finalize the voiceover text for every scene once the user is happy with the wording " +
+    "(as-is or after edits). Call this once, with the complete list of scenes — not just the " +
+    "ones that changed.",
+  input_schema: {
+    type: "object",
+    properties: {
+      scenes: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            sceneNumber: {
+              type: "number",
+              description: "The scene number as shown in CURRENT SCENES (Scene 1, Scene 2, ...)",
+            },
+            voiceoverText: {
+              type: "string",
+              description: "Final voiceover text for this scene",
+            },
+          },
+          required: ["sceneNumber", "voiceoverText"],
         },
       },
     },

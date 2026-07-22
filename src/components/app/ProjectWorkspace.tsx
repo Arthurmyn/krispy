@@ -194,7 +194,12 @@ export function ProjectWorkspace({
         setApproveError(data?.error ?? "Couldn't approve. Try again.");
         return;
       }
-      setProject((p) => ({ ...p, status: data.project.status }));
+      setProject(data.project);
+      if (data.voiceoverReviewError) {
+        setApproveError(
+          `Approved, but couldn't start the voiceover review in chat: ${data.voiceoverReviewError}`,
+        );
+      }
     } catch {
       setApproveError("Couldn't reach the server. Check your connection.");
     } finally {
@@ -957,6 +962,17 @@ function VoiceoverGallery({
   const [playingId, setPlayingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Voice parameters — applied to whichever scene is generated next. Gemini
+  // ignores elevenLabsSettings; ElevenLabs ignores nothing here but ships
+  // sane defaults (its own API defaults) if left blank.
+  const [voiceProvider, setVoiceProvider] = useState<"GEMINI" | "ELEVENLABS">("GEMINI");
+  const [voiceId, setVoiceId] = useState("");
+  const [stability, setStability] = useState(0.5);
+  const [similarityBoost, setSimilarityBoost] = useState(0.75);
+  const [styleExaggeration, setStyleExaggeration] = useState(0);
+  const [useSpeakerBoost, setUseSpeakerBoost] = useState(true);
+  const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
+
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
 
   if (selected && selected.id !== textSceneId) {
@@ -993,7 +1009,21 @@ function VoiceoverGallery({
       const res = await fetch(`/api/scenes/${selected.id}/voiceover`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({
+          text,
+          provider: voiceProvider,
+          voiceId: voiceId.trim() || undefined,
+          ...(voiceProvider === "ELEVENLABS"
+            ? {
+                elevenLabsSettings: {
+                  stability,
+                  similarityBoost,
+                  style: styleExaggeration,
+                  useSpeakerBoost,
+                },
+              }
+            : {}),
+        }),
       });
       if (res.ok) {
         onUpdate((await res.json()).scene);
@@ -1046,6 +1076,90 @@ function VoiceoverGallery({
               className="mt-2 w-full resize-none rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none"
               placeholder="Voiceover / subtitle text for this scene…"
             />
+
+            <details
+              open={voiceSettingsOpen}
+              onToggle={(e) => setVoiceSettingsOpen(e.currentTarget.open)}
+              className="mt-2 rounded-xl border border-border bg-surface px-3 py-2"
+            >
+              <summary className="cursor-pointer select-none text-xs font-medium text-text-secondary">
+                Voice settings
+              </summary>
+              <div className="mt-2 flex flex-col gap-2">
+                <div className="flex items-center gap-1 rounded-full border border-border bg-surface-raised p-1">
+                  {(["GEMINI", "ELEVENLABS"] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setVoiceProvider(p)}
+                      className={
+                        p === voiceProvider
+                          ? "flex-1 rounded-full bg-accent px-2.5 py-1 text-[11px] font-medium text-on-accent"
+                          : "flex-1 rounded-full px-2.5 py-1 text-[11px] text-text-secondary hover:text-text-primary"
+                      }
+                    >
+                      {p === "GEMINI" ? "Gemini" : "ElevenLabs"}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  value={voiceId}
+                  onChange={(e) => setVoiceId(e.target.value)}
+                  placeholder={
+                    voiceProvider === "GEMINI"
+                      ? "Voice name (optional, e.g. Kore, Puck)…"
+                      : "Voice ID (optional, defaults to Rachel)…"
+                  }
+                  className="w-full rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none"
+                />
+                {voiceProvider === "ELEVENLABS" ? (
+                  <div className="flex flex-col gap-2">
+                    <label className="flex flex-col gap-1 text-[11px] text-text-tertiary">
+                      Stability ({stability.toFixed(2)})
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={stability}
+                        onChange={(e) => setStability(Number(e.target.value))}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-[11px] text-text-tertiary">
+                      Similarity boost ({similarityBoost.toFixed(2)})
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={similarityBoost}
+                        onChange={(e) => setSimilarityBoost(Number(e.target.value))}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-[11px] text-text-tertiary">
+                      Style exaggeration ({styleExaggeration.toFixed(2)})
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={styleExaggeration}
+                        onChange={(e) => setStyleExaggeration(Number(e.target.value))}
+                      />
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] text-text-tertiary">
+                      <input
+                        type="checkbox"
+                        checked={useSpeakerBoost}
+                        onChange={(e) => setUseSpeakerBoost(e.target.checked)}
+                      />
+                      Speaker boost
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+            </details>
+
             <div className="mt-3 flex items-center justify-between gap-2">
               {selected.voiceoverUrl ? (
                 <button

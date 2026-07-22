@@ -9,6 +9,15 @@ const bodySchema = z.object({
   text: z.string().min(1).optional(),
   provider: z.enum(["GEMINI", "ELEVENLABS"]).optional(),
   voiceId: z.string().optional(),
+  // ElevenLabs-only voice_settings — ignored by the Gemini path.
+  elevenLabsSettings: z
+    .object({
+      stability: z.number().min(0).max(1).optional(),
+      similarityBoost: z.number().min(0).max(1).optional(),
+      style: z.number().min(0).max(1).optional(),
+      useSpeakerBoost: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 export async function POST(
@@ -25,7 +34,7 @@ export async function POST(
   });
   if (!scene) return new NextResponse("Not found", { status: 404 });
 
-  const { text, provider, voiceId } = bodySchema.parse(
+  const { text, provider, voiceId, elevenLabsSettings } = bodySchema.parse(
     await request.json().catch(() => ({})),
   );
   const voiceoverText = text ?? scene.voiceoverText ?? scene.script;
@@ -39,7 +48,7 @@ export async function POST(
     const { audioBase64, mimeType } = await generateVoiceover(
       userId,
       voiceoverText,
-      { provider, voiceId },
+      { provider, voiceId, elevenLabsSettings },
     );
     const voiceoverUrl = await saveGeneratedAsset(
       scene.project.id,
