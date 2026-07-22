@@ -8,6 +8,7 @@ import type {
   Project,
   RenderJob,
   Scene,
+  Thumbnail,
 } from "@/generated/prisma/client";
 import { Player } from "@remotion/player";
 import { MUSIC_LIBRARY, findMusicTrack, type MusicTrack } from "@/lib/musicLibrary";
@@ -31,6 +32,7 @@ import {
   Plus,
   Sparkles,
   SquareDashedMousePointer,
+  Tags,
   Trash2,
   X,
 } from "lucide-react";
@@ -39,6 +41,7 @@ type ProjectWithRelations = Project & {
   scenes: Scene[];
   chatMessages: ChatMessage[];
   renderJobs: RenderJob[];
+  thumbnails: Thumbnail[];
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -60,6 +63,7 @@ const STEP_LABELS: Record<string, string> = {
   voiceover: "VoiceOver",
   music: "Music",
   render: "Render",
+  metadata: "Metadata",
 };
 
 export function ProjectWorkspace({
@@ -486,7 +490,196 @@ export function ProjectWorkspace({
         />
       </section>
       ) : null}
+
+      {activeStep === "metadata" ? (
+      <section
+        id="metadata"
+        className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4"
+      >
+        <h2 className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-text-tertiary uppercase">
+          <Tags size={13} />
+          Metadata — titles, description, tags, thumbnails
+        </h2>
+        <MetadataPanel
+          project={project}
+          onUpdate={(updated) => setProject(updated)}
+        />
+      </section>
+      ) : null}
     </main>
+  );
+}
+
+// Titles/description/tags are plain text the user can copy; thumbnails are
+// a small image gallery reusing the same generate-per-card pattern as
+// SceneGallery, just without the reference-image/edit machinery scenes have.
+function MetadataPanel({
+  project,
+  onUpdate,
+}: {
+  project: ProjectWithRelations;
+  onUpdate: (project: ProjectWithRelations) => void;
+}) {
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busyThumbnailId, setBusyThumbnailId] = useState<string | null>(null);
+
+  const hasMetadata =
+    project.suggestedTitles.length > 0 || Boolean(project.description) || project.tags.length > 0;
+
+  async function generateMetadata() {
+    setStarting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/metadata`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(data?.error ?? "Couldn't generate metadata. Try again.");
+        return;
+      }
+      onUpdate(data.project);
+    } catch {
+      setError("Couldn't reach the server. Check your connection.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  async function generateThumbnail(thumbnailId: string) {
+    setBusyThumbnailId(thumbnailId);
+    setError(null);
+    try {
+      const res = await fetch(`/api/thumbnails/${thumbnailId}/image`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(data?.error ?? "Couldn't generate the thumbnail. Try again.");
+        return;
+      }
+      onUpdate({
+        ...project,
+        thumbnails: project.thumbnails.map((t) =>
+          t.id === thumbnailId ? data.thumbnail : t,
+        ),
+      });
+    } catch {
+      setError("Couldn't reach the server. Check your connection.");
+    } finally {
+      setBusyThumbnailId(null);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {!hasMetadata ? (
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-sm text-text-tertiary">
+            Ask the assistant to propose titles, a description, tags, and thumbnail concepts for
+            this video.
+          </p>
+          <button
+            type="button"
+            onClick={generateMetadata}
+            disabled={starting}
+            className="flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover disabled:opacity-50"
+          >
+            {starting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            Generate metadata
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xs font-medium text-text-tertiary">Titles</h3>
+            {project.suggestedTitles.map((title, i) => (
+              <p
+                key={i}
+                className="rounded-xl border border-border bg-surface-hover px-3 py-2 text-sm text-text-primary"
+              >
+                {title}
+              </p>
+            ))}
+          </div>
+          {project.description ? (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xs font-medium text-text-tertiary">Description</h3>
+              <p className="whitespace-pre-wrap rounded-xl border border-border bg-surface-hover px-3 py-2 text-sm text-text-primary">
+                {project.description}
+              </p>
+            </div>
+          ) : null}
+          {project.tags.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xs font-medium text-text-tertiary">Tags</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {project.tags.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="rounded-full bg-surface-hover px-2.5 py-1 text-xs text-text-secondary"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {project.thumbnails.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xs font-medium text-text-tertiary">Thumbnails</h3>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {project.thumbnails.map((thumb) => (
+                  <div
+                    key={thumb.id}
+                    className="flex flex-col gap-2 rounded-2xl border border-border bg-surface-hover p-2"
+                  >
+                    <div className="flex aspect-video items-center justify-center overflow-hidden rounded-xl bg-black/30">
+                      {thumb.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={thumb.imageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-text-tertiary">
+                          <ImageIcon size={18} />
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => generateThumbnail(thumb.id)}
+                      disabled={busyThumbnailId === thumb.id}
+                      className="flex items-center justify-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs text-text-secondary transition-colors hover:text-text-primary disabled:opacity-50"
+                    >
+                      {busyThumbnailId === thumb.id ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={12} />
+                      )}
+                      {thumb.imageUrl ? "Regenerate" : "Generate"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={generateMetadata}
+            disabled={starting}
+            className="flex w-fit items-center gap-1.5 rounded-full bg-surface-hover px-4 py-2 text-xs text-text-secondary transition-colors hover:text-text-primary disabled:opacity-50"
+          >
+            {starting ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+            Regenerate
+          </button>
+        </>
+      )}
+      {error ? <p className="text-xs text-danger">{error}</p> : null}
+    </div>
   );
 }
 

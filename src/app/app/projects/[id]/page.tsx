@@ -20,6 +20,7 @@ export default async function ProjectPage({
         scenes: { orderBy: { order: "asc" } },
         chatMessages: { orderBy: { createdAt: "asc" } },
         renderJobs: { orderBy: { createdAt: "desc" }, take: 1 },
+        thumbnails: { orderBy: { order: "asc" } },
       },
     }),
     prisma.project.findMany({

@@ -13,6 +13,7 @@ import {
   Music2,
   PanelLeft,
   Plus,
+  Tags,
 } from "lucide-react";
 import { ProfileMenu } from "./ProfileMenu";
 
@@ -30,6 +31,7 @@ const STEPS = [
   { id: "voiceover", label: "VoiceOver", icon: Mic },
   { id: "music", label: "Music", icon: Music2 },
   { id: "render", label: "Render", icon: Clapperboard },
+  { id: "metadata", label: "Metadata", icon: Tags },
 ] as const;
 
 function NavPill({

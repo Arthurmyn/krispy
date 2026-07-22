@@ -20,6 +20,7 @@ export async function GET(
       scenes: { orderBy: { order: "asc" } },
       chatMessages: { orderBy: { createdAt: "asc" } },
       renderJobs: { orderBy: { createdAt: "desc" }, take: 1 },
+      thumbnails: { orderBy: { order: "asc" } },
     },
   });
   if (!project) return new NextResponse("Not found", { status: 404 });
@@ -121,6 +122,7 @@ export async function PATCH(
       scenes: { orderBy: { order: "asc" } },
       chatMessages: { orderBy: { createdAt: "asc" } },
       renderJobs: { orderBy: { createdAt: "desc" }, take: 1 },
+      thumbnails: { orderBy: { order: "asc" } },
     },
   });
 

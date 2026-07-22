@@ -10,6 +10,7 @@ import {
   SET_PARAMETERS_TOOL,
   PROPOSE_SCENES_TOOL,
   CONFIRM_VOICEOVER_TEXT_TOOL,
+  PROPOSE_METADATA_TOOL,
 } from "./tools";
 
 export type PromptProject = Pick<
@@ -85,5 +86,7 @@ export function getToolsForStage(stage: PromptProject["chatStage"]): Anthropic.T
       return [PROPOSE_SCENES_TOOL];
     case "VOICEOVER_REVIEW":
       return [CONFIRM_VOICEOVER_TEXT_TOOL];
+    case "METADATA":
+      return [PROPOSE_METADATA_TOOL];
   }
 }

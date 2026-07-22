@@ -49,6 +49,9 @@ enum ChatStage {
   // approveScenes in src/app/api/projects/[id]/route.ts) — the assistant
   // proactively posts the full voiceover script for confirmation/edits.
   VOICEOVER_REVIEW
+  // Entered on-demand from the Metadata tab (not part of the main linear
+  // flow) — proposes titles/description/tags/thumbnail prompts.
+  METADATA
 }
 
 enum ChatRole {
@@ -175,6 +178,13 @@ model Project {
   language        String?
   chatStage       ChatStage @default(NICHE)
 
+  // YouTube-style publish metadata, proposed via the Metadata tab/chat
+  // stage — separate from the script/style fields above since these only
+  // exist once the video itself is basically done.
+  suggestedTitles String[] @default([])
+  description     String?
+  tags            String[] @default([])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -182,6 +192,7 @@ model Project {
   chatMessages ChatMessage[]
   scenes       Scene[]
   renderJobs   RenderJob[]
+  thumbnails   Thumbnail[]
 }
 
 model ChatMessage {
@@ -209,6 +220,26 @@ model Scene {
   voiceoverStatus AssetStatus @default(PENDING)
 
   durationMs Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, order])
+}
+
+// Thumbnail candidates for the video, separate from Scene since they aren't
+// part of the render timeline — just standalone images proposed alongside
+// titles/description/tags in the Metadata stage.
+model Thumbnail {
+  id     String @id @default(cuid())
+  projectId String
+  order  Int
+
+  prompt      String
+  imageUrl    String?
+  imageStatus AssetStatus @default(PENDING)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

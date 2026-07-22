@@ -155,3 +155,39 @@ export const CONFIRM_VOICEOVER_TEXT_TOOL: Anthropic.Tool = {
     required: ["scenes"],
   },
 };
+
+// Entered on-demand from the Metadata tab, once script/style/scenes already
+// exist — proposes what the user needs to actually publish the video.
+export const PROPOSE_METADATA_TOOL: Anthropic.Tool = {
+  name: "propose_metadata",
+  description:
+    "Propose publish metadata for the finished video: titles, a description, tags, and " +
+    "thumbnail image prompts. Call this once, after presenting the proposal to the user.",
+  input_schema: {
+    type: "object",
+    properties: {
+      titles: {
+        type: "array",
+        items: { type: "string" },
+        description: "3-5 candidate video titles",
+      },
+      description: {
+        type: "string",
+        description: "A publish-ready video description",
+      },
+      tags: {
+        type: "array",
+        items: { type: "string" },
+        description: "5-10 relevant tags/keywords",
+      },
+      thumbnailPrompts: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "English image-generation prompts for 2-4 thumbnail candidates, each incorporating " +
+          "the locked style block for visual consistency with the rest of the video",
+      },
+    },
+    required: ["titles", "description", "tags", "thumbnailPrompts"],
+  },
+};

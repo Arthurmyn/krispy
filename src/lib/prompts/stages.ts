@@ -100,4 +100,16 @@ show the complete updated script again before finalizing. Once they're happy wit
 wording, call confirm_voiceover_text with the complete list — sceneNumber and voiceoverText for
 every scene, not just the ones that changed. After this, generating the actual voiceover audio and
 picking voice parameters happens in the VoiceOver tab, outside this chat.`,
+
+  METADATA: `CURRENT STAGE: Metadata.
+Niche, idea, style, and script are locked (see PROJECT MEMORY and CURRENT SCENES). The user wants
+to prepare this video for publishing. Propose, in one message:
+- 3-5 candidate titles.
+- One publish-ready description.
+- 5-10 relevant tags/keywords.
+- 2-4 thumbnail concepts, each described in one line for the user, plus a matching English
+  image-generation prompt that incorporates the locked style block for visual consistency with
+  the rest of the video.
+Ask if they want changes to any of it. Once they're happy (as-is or after edits), call
+propose_metadata with the final titles, description, tags, and thumbnailPrompts.`,
 };

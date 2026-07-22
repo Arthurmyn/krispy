@@ -174,6 +174,33 @@ export async function POST(
     scenesCreated = true;
   }
 
+  if (toolUse?.name === "propose_metadata") {
+    const input = toolUse.input as {
+      titles: string[];
+      description: string;
+      tags: string[];
+      thumbnailPrompts: string[];
+    };
+    await prisma.$transaction([
+      prisma.project.update({
+        where: { id: projectId },
+        data: {
+          suggestedTitles: input.titles,
+          description: input.description,
+          tags: input.tags,
+        },
+      }),
+      prisma.thumbnail.deleteMany({ where: { projectId } }),
+      prisma.thumbnail.createMany({
+        data: input.thumbnailPrompts.map((prompt, index) => ({
+          projectId,
+          order: index,
+          prompt,
+        })),
+      }),
+    ]);
+  }
+
   if (toolUse?.name === "confirm_voiceover_text") {
     const input = toolUse.input as {
       scenes: { sceneNumber: number; voiceoverText: string }[];
@@ -198,6 +225,7 @@ export async function POST(
       scenes: { orderBy: { order: "asc" } },
       chatMessages: { orderBy: { createdAt: "asc" } },
       renderJobs: { orderBy: { createdAt: "desc" }, take: 1 },
+      thumbnails: { orderBy: { order: "asc" } },
     },
   });
 
