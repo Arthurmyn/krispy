@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { generateVoiceover } from "@/lib/providers";
+import { generateVoiceover, consumeTrialGeneration } from "@/lib/providers";
 import { saveGeneratedAsset } from "@/lib/assets";
 
 const bodySchema = z.object({
@@ -45,11 +45,12 @@ export async function POST(
   });
 
   try {
-    const { audioBase64, mimeType } = await generateVoiceover(
+    const { audioBase64, mimeType, usedTrial } = await generateVoiceover(
       userId,
       voiceoverText,
       { provider, voiceId, elevenLabsSettings },
     );
+    if (usedTrial) await consumeTrialGeneration(userId);
     const voiceoverUrl = await saveGeneratedAsset(
       scene.project.id,
       sceneId,

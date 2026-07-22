@@ -1165,6 +1165,25 @@ function VoiceoverGallery({
   const [styleExaggeration, setStyleExaggeration] = useState(0);
   const [useSpeakerBoost, setUseSpeakerBoost] = useState(true);
   const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
+  const providerChangedManually = useRef(false);
+
+  // Default to ElevenLabs when it's connected — a separate quota from
+  // Gemini's, so narration doesn't compete with chat/image generation for
+  // the same daily free-tier cap. Only applies before the user picks a
+  // provider themselves.
+  useEffect(() => {
+    fetch("/api/settings/api-keys")
+      .then((res) => res.json())
+      .then((data: { keys: { provider: string }[] }) => {
+        if (
+          !providerChangedManually.current &&
+          data.keys.some((k) => k.provider === "ELEVENLABS")
+        ) {
+          setVoiceProvider("ELEVENLABS");
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
 
@@ -1284,7 +1303,10 @@ function VoiceoverGallery({
                     <button
                       key={p}
                       type="button"
-                      onClick={() => setVoiceProvider(p)}
+                      onClick={() => {
+                        providerChangedManually.current = true;
+                        setVoiceProvider(p);
+                      }}
                       className={
                         p === voiceProvider
                           ? "flex-1 rounded-full bg-accent px-2.5 py-1 text-[11px] font-medium text-on-accent"

@@ -29,3 +29,23 @@ export async function runAssistantTurn(options: {
 
   return result;
 }
+
+// Appends one propose_scene_batch turn's scenes to whatever already exists
+// for the project — used by the SCRIPT stage's batch loop (see
+// src/app/api/projects/[id]/chat/route.ts), as opposed to propose_scenes'
+// full delete-and-replace semantics used elsewhere.
+export async function appendScriptBatch(
+  projectId: string,
+  scenes: { script: string; imagePrompt: string; durationMs?: number }[],
+  startOrder: number,
+): Promise<void> {
+  await prisma.scene.createMany({
+    data: scenes.map((scene, i) => ({
+      projectId,
+      order: startOrder + i,
+      script: scene.script,
+      imagePrompt: scene.imagePrompt,
+      durationMs: scene.durationMs,
+    })),
+  });
+}

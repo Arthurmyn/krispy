@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { generateSceneImage } from "@/lib/providers";
+import { generateSceneImage, consumeTrialGeneration } from "@/lib/providers";
 import { saveGeneratedAsset } from "@/lib/assets";
 import type { AspectRatio } from "@/generated/prisma/client";
 
@@ -52,7 +52,7 @@ export async function POST(
   });
 
   try {
-    const { imageBase64, mimeType } = await generateSceneImage(
+    const { imageBase64, mimeType, usedTrial } = await generateSceneImage(
       userId,
       imagePrompt,
       ASPECT_RATIO_MAP[scene.project.aspectRatio],
@@ -60,6 +60,7 @@ export async function POST(
         ? { base64: referenceImageBase64, mimeType: referenceImageMimeType }
         : undefined,
     );
+    if (usedTrial) await consumeTrialGeneration(userId);
     const imageUrl = await saveGeneratedAsset(
       scene.project.id,
       sceneId,

@@ -15,4 +15,7 @@ Hard rules, always:
   stop and wait for the user.
 - Never call a tool outside what the current stage makes available to you (see below). If a tool
   isn't offered to you right now, that action isn't allowed yet — don't ask the user to do it
-  another way either; just continue the conversation toward unlocking it.`;
+  another way either; just continue the conversation toward unlocking it.
+- Whenever you call a tool, also write a short message in the same turn confirming what was just
+  locked in and what happens next. Never call a tool with no accompanying text — the user needs to
+  see a response, not silence.`;

@@ -1,5 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { describeProviderError } from "@/lib/apiErrors";
+import { fetchWithRetry } from "@/lib/retryFetch";
 
 // Trial swap: chat/script generation runs on the user's own Gemini key for
 // now instead of Claude (src/lib/anthropic.ts is still here, untouched, so
@@ -11,7 +11,13 @@ import { describeProviderError } from "@/lib/apiErrors";
 // Flash, not Pro: the Pro tier has a 0 free-tier quota (not "exhausted" —
 // literally zero), so BYOK users on a free Google AI Studio key get an
 // immediate 429 on every request. Flash has an actual free allowance.
-export const CHAT_MODEL = "gemini-2.5-flash";
+//
+// "-latest" alias, not a pinned version: Google started rejecting pinned
+// "gemini-2.5-flash" with a 404 ("no longer available to new users") for
+// keys created after that cutoff, while "gemini-flash-latest" keeps
+// resolving to whatever the current recommended flash model is — avoids
+// this repeating every time Google retires a dated model name.
+export const CHAT_MODEL = "gemini-flash-latest";
 
 type JsonSchema = {
   type: string;
@@ -69,38 +75,56 @@ export async function generateChatCompletion(options: {
   tools: Anthropic.Tool[];
   history: GeminiHistoryMessage[];
 }): Promise<GeminiChatResult> {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${CHAT_MODEL}:generateContent?key=${options.apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: options.systemPrompt }] },
-        contents: options.history.map((m) => ({
-          role: m.role,
-          parts: [
-            ...(m.images ?? []).map((image) => ({
-              inlineData: { mimeType: image.mimeType, data: image.base64 },
-            })),
-            { text: m.text },
-          ],
-        })),
-        tools: options.tools.length
-          ? [{ functionDeclarations: toFunctionDeclarations(options.tools) }]
-          : undefined,
-        generationConfig: { maxOutputTokens: 2048 },
-      }),
-    },
+  const res = await fetchWithRetry("Gemini", () =>
+    fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${CHAT_MODEL}:generateContent?key=${options.apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: options.systemPrompt }] },
+          contents: options.history.map((m) => ({
+            role: m.role,
+            parts: [
+              ...(m.images ?? []).map((image) => ({
+                inlineData: { mimeType: image.mimeType, data: image.base64 },
+              })),
+              { text: m.text },
+            ],
+          })),
+          tools: options.tools.length
+            ? [{ functionDeclarations: toFunctionDeclarations(options.tools) }]
+            : undefined,
+          // 2048 was too tight for the Script stage: propose_scenes has to
+          // repeat the full styleBlock verbatim in every scene's imagePrompt
+          // (see stages.ts), so a longer video with many scenes can genuinely
+          // need several thousand tokens. Hitting the ceiling mid-call used to
+          // cut the response off mid-JSON, which came through as garbled
+          // pseudo tool-call text instead of a clean error — see the
+          // MAX_TOKENS check below for how that's handled now.
+          generationConfig: { maxOutputTokens: 8192 },
+        }),
+      },
+    ),
   );
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(describeProviderError("Gemini", res.status, body));
+  const data = await res.json();
+  const candidate = data.candidates?.[0];
+
+  // A response cut off mid-generation (finishReason MAX_TOKENS) can leave a
+  // half-written function call, which sometimes surfaces as garbled
+  // pseudo-syntax text (e.g. "call:default_api:propose_scenes{...") instead
+  // of a clean functionCall part. Treat it as a clear, actionable error
+  // instead of showing that garbage to the user.
+  if (candidate?.finishReason === "MAX_TOKENS") {
+    throw new Error(
+      "Gemini's reply was cut off because it ran too long. Try asking for a shorter " +
+        "script, or fewer scenes, and try again.",
+    );
   }
 
-  const data = await res.json();
   const parts: Array<{ text?: string; functionCall?: { name: string; args: unknown } }> =
-    data.candidates?.[0]?.content?.parts ?? [];
+    candidate?.content?.parts ?? [];
 
   const text = parts
     .filter((p) => typeof p.text === "string")

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
 
 type Provider = "GEMINI" | "ELEVENLABS" | "ANTHROPIC";
 
@@ -23,6 +24,26 @@ const PROVIDERS: {
       'Click "Create API key" (pick or create a Google Cloud project if asked).',
       "Copy the key that appears — it starts with \"AIza…\".",
       "Paste it into the field below and click Save.",
+      "Hitting the daily free-tier limit often, mid-video? A full video uses a lot of Gemini " +
+        "calls (chat + one per scene image + voiceover). Enabling billing on the linked Google " +
+        "Cloud project is cheap and removes the daily cap — see aistudio.google.com/apikey → " +
+        "your project → billing.",
+    ],
+  },
+  {
+    value: "ELEVENLABS",
+    label: "ElevenLabs (optional — narration, separate quota from Gemini)",
+    required: false,
+    keyPageUrl: "https://elevenlabs.io/app/settings/api-keys",
+    keyPageLabel: "elevenlabs.io/app/settings/api-keys",
+    steps: [
+      "Sign in (or create an account) at ElevenLabs.",
+      "Go to Settings → API Keys and create one.",
+      "Copy the key that appears.",
+      "Paste it into the field below and click Save.",
+      "Connecting this moves narration off Gemini's quota onto ElevenLabs' own — helpful if " +
+        "you're hitting Gemini's daily limit partway through a video. The VoiceOver tab switches " +
+        "to it automatically once connected (you can still pick Gemini per-scene if you prefer).",
     ],
   },
   {
@@ -39,26 +60,46 @@ const PROVIDERS: {
       "Paste it into the field below and click Save.",
     ],
   },
-  // ElevenLabs is still supported by the backend (src/lib/providers.ts) as
-  // an optional premium voice — just not surfaced in this form since
-  // Gemini alone already covers free voiceover generation.
 ];
 
 export function ApiKeysForm() {
   const [connected, setConnected] = useState<Set<Provider>>(new Set());
   const [loaded, setLoaded] = useState(false);
+  const [trialRemaining, setTrialRemaining] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/settings/api-keys")
       .then((res) => res.json())
-      .then((data: { keys: { provider: Provider }[] }) => {
-        setConnected(new Set(data.keys.map((k) => k.provider)));
-        setLoaded(true);
-      });
+      .then(
+        (data: {
+          keys: { provider: Provider }[];
+          trialGenerationsRemaining: number;
+        }) => {
+          setConnected(new Set(data.keys.map((k) => k.provider)));
+          setTrialRemaining(data.trialGenerationsRemaining);
+          setLoaded(true);
+        },
+      );
   }, []);
 
   return (
     <div className="flex flex-col gap-4">
+      {loaded && !connected.has("GEMINI") && trialRemaining !== null ? (
+        <div className="flex items-center gap-2 rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-text-primary">
+          <Sparkles size={16} className="shrink-0 text-accent" />
+          {trialRemaining > 0 ? (
+            <span>
+              You have <strong>{trialRemaining} free trial generations</strong> left — chat,
+              images, and voiceover all work without connecting a Gemini key yet.
+            </span>
+          ) : (
+            <span>
+              You&apos;ve used all your free trial generations. Connect your own Gemini key below
+              to keep generating.
+            </span>
+          )}
+        </div>
+      ) : null}
       {PROVIDERS.map((p) => (
         <ApiKeyRow
           key={p.value}

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { getUserProviderKey } from "@/lib/providers";
-import { runAssistantTurn } from "@/lib/chatTurn";
+import { resolveGeminiKey, consumeTrialGeneration } from "@/lib/providers";
+import { runAssistantTurn, appendScriptBatch } from "@/lib/chatTurn";
 
 const chatRequestSchema = z.object({
   message: z.string().min(1),
@@ -28,12 +28,14 @@ export async function POST(
   });
   if (!project) return new NextResponse("Not found", { status: 404 });
 
-  // Chat runs on the user's own Gemini key (see src/lib/gemini.ts). Fail
-  // fast with a clear message if they haven't connected one yet, rather
-  // than letting the request blow up further down.
+  // Chat runs on the user's own Gemini key, or — while they still have
+  // trial generations left — a platform-funded key (see resolveGeminiKey in
+  // src/lib/providers.ts). Fail fast with a clear message if neither is
+  // available, rather than letting the request blow up further down.
   let apiKey: string;
+  let usedTrial: boolean;
   try {
-    apiKey = await getUserProviderKey(userId, "GEMINI");
+    ({ apiKey, usedTrial } = await resolveGeminiKey(userId));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 400 });
@@ -83,8 +85,11 @@ export async function POST(
       { status: 502 },
     );
   }
+  // The call reached Gemini and cost us real money either way, whether or
+  // not the output was usable — see the empty-response guard just below.
+  if (usedTrial) await consumeTrialGeneration(userId);
 
-  const assistantText = result.text;
+  let assistantText = result.text;
   const toolUse = result.toolCall;
 
   // Gemini occasionally returns a candidate with no text and no function
@@ -102,6 +107,15 @@ export async function POST(
 
   let scenesCreated = false;
 
+  // Gemini's function-calling turns very often come back with a tool call
+  // and *no* accompanying text (confirmed repeatedly in testing — it's the
+  // model's normal behavior, not a fluke). Without a fallback, a successful
+  // stage transition would be invisible in the chat: the project moves
+  // forward but no new bubble appears, so it looks like the assistant just
+  // stopped responding. Each branch below sets a short confirmation the
+  // user actually sees whenever the model didn't provide its own text.
+  let fallbackText: string | null = null;
+
   // Stage order: Niche -> Idea -> Style -> Parameters -> Script -> Script review.
   // Idea comes right after Niche so the user lands on a specific video idea
   // before spending effort on a style passport for it.
@@ -111,6 +125,7 @@ export async function POST(
       where: { id: projectId },
       data: { category: input.niche, chatStage: "IDEA" },
     });
+    fallbackText = `Niche locked in: "${input.niche}". Now let's land on a specific video idea.`;
   }
 
   if (toolUse?.name === "confirm_topic") {
@@ -119,6 +134,7 @@ export async function POST(
       where: { id: projectId },
       data: { topic: input.topic, chatStage: "STYLE" },
     });
+    fallbackText = `Idea locked in: "${input.topic}". Now let's build the style passport — upload up to 5 reference frames, or describe the visual style you want.`;
   }
 
   if (toolUse?.name === "lock_style") {
@@ -136,6 +152,7 @@ export async function POST(
         chatStage: "PARAMETERS",
       },
     });
+    fallbackText = "Style passport locked in. Now let's set the target duration and language.";
   }
 
   if (toolUse?.name === "set_parameters") {
@@ -148,6 +165,7 @@ export async function POST(
         chatStage: "SCRIPT",
       },
     });
+    fallbackText = `Got it — ${input.durationSeconds}s, in ${input.language}. Let's write the script.`;
   }
 
   if (toolUse?.name === "propose_scenes") {
@@ -172,6 +190,95 @@ export async function POST(
       }),
     ]);
     scenesCreated = true;
+    fallbackText = `Storyboard ready — ${input.scenes.length} scenes. Head to the Image tab to generate and review them.`;
+  }
+
+  // SCRIPT stage: the model writes the script in batches of up to 8 scenes
+  // instead of one giant call (a long video can need far more scenes than
+  // fit in a single response — see the "MAX_TOKENS" fix in gemini.ts and
+  // the plan this was designed against). This loop keeps calling the model
+  // server-side, appending each batch, until isFinalBatch or a safety cap —
+  // the user just sees one "sending" spinner, not a "continue" button per
+  // batch. SCRIPT_REVIEW keeps using the full-replace propose_scenes tool
+  // above for revisions, unchanged.
+  if (toolUse?.name === "propose_scene_batch") {
+    const MAX_BATCH_ITERATIONS = 8;
+    let batchInput = toolUse.input as {
+      scenes: { script: string; imagePrompt: string; durationMs?: number }[];
+      isFinalBatch: boolean;
+    };
+    let startOrder = project.scenes.length;
+
+    for (let iteration = 1; ; iteration++) {
+      await appendScriptBatch(projectId, batchInput.scenes, startOrder);
+      startOrder += batchInput.scenes.length;
+
+      if (batchInput.isFinalBatch) {
+        await prisma.project.update({
+          where: { id: projectId },
+          data: { status: "REVIEWING_SCENES", chatStage: "SCRIPT_REVIEW" },
+        });
+        scenesCreated = true;
+        fallbackText = `Storyboard ready — ${startOrder} scenes. Head to the Image tab to generate and review them.`;
+        break;
+      }
+
+      if (iteration >= MAX_BATCH_ITERATIONS) {
+        fallbackText = `Written ${startOrder} scenes so far — reply "continue" and I'll keep going.`;
+        break;
+      }
+
+      // Re-fetch rather than track in memory: runAssistantTurn already
+      // persisted this turn's real text (if any) as a ChatMessage, and the
+      // model gets narrative continuity from the SCRIPT PROGRESS block
+      // (scene count + duration so far), not from re-reading old messages.
+      const freshProject = await prisma.project.findUniqueOrThrow({
+        where: { id: projectId },
+        include: { scenes: { orderBy: { order: "asc" } } },
+      });
+      const freshHistory = await prisma.chatMessage.findMany({
+        where: { projectId },
+        orderBy: { createdAt: "asc" },
+      });
+
+      let nextResult: Awaited<ReturnType<typeof runAssistantTurn>>;
+      try {
+        nextResult = await runAssistantTurn({
+          apiKey,
+          projectId,
+          project: freshProject,
+          scenes: freshProject.scenes,
+          history: [
+            ...freshHistory.map((m) => ({
+              role: m.role === "USER" ? ("user" as const) : ("model" as const),
+              text: m.content,
+            })),
+            { role: "user" as const, text: "Continue with the next batch." },
+          ],
+        });
+      } catch (error) {
+        fallbackText =
+          error instanceof Error ? error.message : "Couldn't continue the script.";
+        break;
+      }
+      if (usedTrial) await consumeTrialGeneration(userId);
+
+      if (!nextResult.text && !nextResult.toolCall) {
+        fallbackText =
+          'Gemini didn\'t return a reply while continuing the script. Reply "continue" to try again.';
+        break;
+      }
+
+      if (nextResult.toolCall?.name !== "propose_scene_batch") {
+        assistantText = nextResult.text;
+        fallbackText = nextResult.text
+          ? null
+          : 'Didn\'t get the next batch — reply "continue" to try again.';
+        break;
+      }
+
+      batchInput = nextResult.toolCall.input as typeof batchInput;
+    }
   }
 
   if (toolUse?.name === "propose_metadata") {
@@ -199,6 +306,7 @@ export async function POST(
         })),
       }),
     ]);
+    fallbackText = "Metadata locked in — check the Metadata tab for your titles, description, tags, and thumbnails.";
   }
 
   if (toolUse?.name === "confirm_voiceover_text") {
@@ -217,6 +325,14 @@ export async function POST(
         data: { chatStage: "SCRIPT_REVIEW" },
       }),
     ]);
+    fallbackText = "Voiceover text locked in. Head to the VoiceOver tab to generate the narration.";
+  }
+
+  const finalAssistantText = assistantText || fallbackText;
+  if (!assistantText && fallbackText) {
+    await prisma.chatMessage.create({
+      data: { projectId, role: "ASSISTANT", content: fallbackText },
+    });
   }
 
   const updatedProject = await prisma.project.findUniqueOrThrow({
@@ -230,7 +346,7 @@ export async function POST(
   });
 
   return NextResponse.json({
-    message: assistantText,
+    message: finalAssistantText,
     scenesCreated,
     project: updatedProject,
   });

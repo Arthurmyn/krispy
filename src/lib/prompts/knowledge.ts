@@ -27,8 +27,11 @@ export const PLATFORM_NOTES: Record<Platform, string> = {
   TIKTOK:
     "Platform: TikTok. Hook has to land in under 1 second — no warm-up. Fast cuts, high energy," +
     " comfortable running shorter (15-30s) rather than padding it out.",
+  // Labeled "YouTube" (not "YouTube Shorts") throughout the UI and here —
+  // the platform picker's aspect-ratio control already covers vertical vs.
+  // landscape, so this note shouldn't presume the vertical Shorts format.
   YOUTUBE_SHORTS:
-    "Platform: YouTube Shorts. Tolerates a slightly slower opening beat than TikTok and can " +
+    "Platform: YouTube. Tolerates a slightly slower opening beat than TikTok and can " +
     "comfortably run closer to 45-60s if the topic earns it. Viewers give it a hair more patience.",
   INSTAGRAM_REELS:
     "Platform: Instagram Reels. Aesthetic- and trend-aware audience, mid-pace between TikTok and " +

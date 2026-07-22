@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { getUserProviderKey } from "@/lib/providers";
+import { resolveGeminiKey, consumeTrialGeneration } from "@/lib/providers";
 import { runAssistantTurn } from "@/lib/chatTurn";
 
 // Entry point for the Metadata tab — unlike the other stages, this one
@@ -27,8 +27,9 @@ export async function POST(
   if (!project) return new NextResponse("Not found", { status: 404 });
 
   let apiKey: string;
+  let usedTrial: boolean;
   try {
-    apiKey = await getUserProviderKey(userId, "GEMINI");
+    ({ apiKey, usedTrial } = await resolveGeminiKey(userId));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 400 });
@@ -40,7 +41,7 @@ export async function POST(
   });
 
   try {
-    await runAssistantTurn({
+    const result = await runAssistantTurn({
       apiKey,
       projectId,
       project: { ...project, chatStage: "METADATA" },
@@ -56,6 +57,15 @@ export async function POST(
         },
       ],
     });
+    if (usedTrial) await consumeTrialGeneration(userId);
+    // See the same guard in the chat route — this opening turn never has a
+    // tool call by design, so empty text alone means nothing got posted.
+    if (!result.text) {
+      return NextResponse.json(
+        { error: "Gemini didn't return a reply. Try again." },
+        { status: 502 },
+      );
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 502 });

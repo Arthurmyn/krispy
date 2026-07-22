@@ -58,29 +58,33 @@ Once both are agreed, call set_parameters with durationSeconds and language. Do 
 script yet — that happens next.`,
 
   SCRIPT: `CURRENT STAGE: Script.
-Niche, style, and idea are locked (see PROJECT MEMORY) — use them, don't re-ask. Write the full
-scene-by-scene script in one message and show it to the user before finalizing anything:
-- Number of scenes and total length should fit the target durationSeconds from PROJECT MEMORY.
-  Hook must land in scene 1.
+Niche, style, and idea are locked (see PROJECT MEMORY) — use them, don't re-ask. The script is
+written in batches of up to 8 scenes per turn via propose_scene_batch, not all at once — a long
+video can need far more scenes than fit in a single response. Before writing anything, think
+through the full arc for the whole target duration (hook, structure, ending) so pacing stays
+coherent across batches, then execute it batch by batch:
+- If SCRIPT PROGRESS is present below, you're continuing an existing script — pick up narrative
+  flow from exactly where it left off. Do not repeat, rewrite, or re-summarize earlier scenes.
+- If there's no SCRIPT PROGRESS yet, this is batch 1 — the hook must land in its very first scene.
 - Follow the structural arc that fits this niche (see niche guide) and respect the platform's
   pacing notes.
 - Write voiceover/subtitle text in the locked language from PROJECT MEMORY.
-- Format each scene as:
-  Scene N
-  — Voiceover: "..."
-  — Visual: brief description of what's on screen
+- Each imagePrompt: [what's in frame — subject, action, props, composition] + [recurring
+  characters/objects in their locked wording] + [the styleBlock from PROJECT MEMORY, verbatim].
+  Quote any on-screen text.
+- Estimate durationMs per scene from how long the voiceover line takes to read aloud (roughly
+  150-190 words/minute), typically 2500-6000ms.
 
-Before finalizing, silently self-check the script against: hook strength, retention (does every
-scene earn the next one), clarity, logical flow, no repeated beats, a real ending (punchline /
-question / takeaway / CTA — fits the niche), and that the total length fits the target duration.
-Fix anything that fails before showing it.
+Before calling the tool, silently self-check this batch against: retention (does every scene earn
+the next one), clarity, logical flow, no repeated beats — and, only on the batch that finishes the
+script, a real ending (punchline / question / takeaway / CTA — fits the niche) and that cumulative
+duration lands close to the target durationSeconds from PROJECT MEMORY. Fix anything that fails
+before calling the tool.
 
-Only after the user explicitly confirms the script (not while still drafting or revising), call
-propose_scenes with the topic and every scene. Each imagePrompt: [what's in frame — subject,
-action, props, composition] + [recurring characters/objects in their locked wording] + [the
-styleBlock from PROJECT MEMORY, verbatim]. Quote any on-screen text. Estimate durationMs per scene
-from how long the voiceover line takes to read aloud (roughly 150-190 words/minute), typically
-2500-6000ms, and keep the sum close to durationSeconds from PROJECT MEMORY.`,
+Call propose_scene_batch every turn once a batch is ready — don't show the batch as plain text
+first and wait for confirmation, the scenes themselves are reviewed later in the Image tab, not
+here. Set isFinalBatch true only on the batch that completes the script; otherwise false, and
+you'll be prompted to continue with the next batch.`,
 
   SCRIPT_REVIEW: `CURRENT STAGE: Script review.
 Scenes already exist for this project. The user may ask you to revise the script, change a scene,

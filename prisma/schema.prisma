@@ -99,6 +99,12 @@ model User {
   passwordHash  String?
   createdAt     DateTime  @default(now())
 
+  // MVP trial: a flat pool of platform-funded Gemini generations for users
+  // who haven't connected their own BYOK key yet — see resolveGeminiKey in
+  // src/lib/providers.ts. Not weighted by actual per-call cost (that's the
+  // token system, not built yet); every counted call just costs 1.
+  trialGenerationsRemaining Int @default(20)
+
   accounts Account[]
   sessions Session[]
   apiKeys  ApiKey[]

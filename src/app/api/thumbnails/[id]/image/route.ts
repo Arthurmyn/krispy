@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { generateSceneImage } from "@/lib/providers";
+import { generateSceneImage, consumeTrialGeneration } from "@/lib/providers";
 import { saveGeneratedAsset } from "@/lib/assets";
 
 const bodySchema = z.object({
@@ -35,11 +35,12 @@ export async function POST(
     // YouTube thumbnails are 16:9 regardless of the video's own aspect
     // ratio (which is usually 9:16 for shorts) — this is a separate asset,
     // not a frame from the video itself.
-    const { imageBase64, mimeType } = await generateSceneImage(
+    const { imageBase64, mimeType, usedTrial } = await generateSceneImage(
       userId,
       imagePrompt,
       "16:9",
     );
+    if (usedTrial) await consumeTrialGeneration(userId);
     const imageUrl = await saveGeneratedAsset(
       thumbnail.project.id,
       thumbnailId,

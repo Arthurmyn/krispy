@@ -9,6 +9,7 @@ import {
   LOCK_STYLE_TOOL,
   SET_PARAMETERS_TOOL,
   PROPOSE_SCENES_TOOL,
+  PROPOSE_SCENE_BATCH_TOOL,
   CONFIRM_VOICEOVER_TEXT_TOOL,
   PROPOSE_METADATA_TOOL,
 } from "./tools";
@@ -28,7 +29,7 @@ export type PromptProject = Pick<
   | "chatStage"
 >;
 
-export type PromptScene = Pick<Scene, "order" | "script" | "voiceoverText">;
+export type PromptScene = Pick<Scene, "order" | "script" | "voiceoverText" | "durationMs">;
 
 function formatProjectMemory(project: PromptProject): string {
   const nicheLocked = project.chatStage !== "NICHE";
@@ -58,13 +59,35 @@ function formatScenes(scenes: PromptScene[]): string {
   return `CURRENT SCENES (voiceover text, in order):\n${lines.join("\n")}`;
 }
 
+// Lets the SCRIPT stage pick up narrative continuity across batches without
+// re-seeing every prior scene's full text (which would itself blow the
+// token budget for long scripts) — just the count and running duration.
+function formatScriptProgress(scenes: PromptScene[], durationSeconds: number | null): string {
+  const sorted = [...scenes].sort((a, b) => a.order - b.order);
+  const coveredMs = sorted.reduce((sum, s) => sum + (s.durationMs ?? 0), 0);
+  const coveredSeconds = Math.round(coveredMs / 1000);
+  const target = durationSeconds ?? 0;
+  const remaining = Math.max(target - coveredSeconds, 0);
+  return (
+    `SCRIPT PROGRESS: ${sorted.length} scene${sorted.length === 1 ? "" : "s"} written so far, ` +
+    `covering ~${coveredSeconds}s of the ~${target}s target (${remaining}s remaining). ` +
+    `Continue from Scene ${sorted.length + 1} — do not repeat or rewrite earlier scenes.`
+  );
+}
+
 export function buildSystemPrompt(project: PromptProject, scenes?: PromptScene[]): string {
   return [
     CORE_PROMPT,
     NICHE_DNA_GUIDE,
     PLATFORM_NOTES[project.platform],
     formatProjectMemory(project),
-    scenes && scenes.length ? formatScenes(scenes) : null,
+    scenes && scenes.length && project.chatStage === "SCRIPT"
+      ? formatScriptProgress(scenes, project.durationSeconds)
+      : null,
+    // Full per-scene text is only relevant (and only cheap) outside the
+    // batched SCRIPT stage — formatScriptProgress covers SCRIPT instead so
+    // long scripts don't re-send every prior scene's full text each batch.
+    scenes && scenes.length && project.chatStage !== "SCRIPT" ? formatScenes(scenes) : null,
     STAGE_INSTRUCTIONS[project.chatStage],
   ]
     .filter((section): section is string => Boolean(section))
@@ -82,6 +105,7 @@ export function getToolsForStage(stage: PromptProject["chatStage"]): Anthropic.T
     case "PARAMETERS":
       return [SET_PARAMETERS_TOOL];
     case "SCRIPT":
+      return [PROPOSE_SCENE_BATCH_TOOL];
     case "SCRIPT_REVIEW":
       return [PROPOSE_SCENES_TOOL];
     case "VOICEOVER_REVIEW":

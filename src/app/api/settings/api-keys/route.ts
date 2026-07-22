@@ -16,11 +16,20 @@ export async function GET() {
   const userId = await getSessionUserId();
   if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-  const keys = await prisma.apiKey.findMany({
-    where: { userId },
-    select: { provider: true, createdAt: true },
+  const [keys, user] = await Promise.all([
+    prisma.apiKey.findMany({
+      where: { userId },
+      select: { provider: true, createdAt: true },
+    }),
+    prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { trialGenerationsRemaining: true },
+    }),
+  ]);
+  return NextResponse.json({
+    keys,
+    trialGenerationsRemaining: user.trialGenerationsRemaining,
   });
-  return NextResponse.json({ keys });
 }
 
 export async function PUT(request: NextRequest) {

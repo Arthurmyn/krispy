@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { getUserProviderKey } from "@/lib/providers";
+import { resolveGeminiKey, consumeTrialGeneration } from "@/lib/providers";
 import { runAssistantTurn } from "@/lib/chatTurn";
 import { MUSIC_LIBRARY } from "@/lib/musicLibrary";
 
@@ -93,8 +93,8 @@ export async function PATCH(
   let voiceoverReviewError: string | null = null;
   if (approveScenes) {
     try {
-      const apiKey = await getUserProviderKey(userId, "GEMINI");
-      await runAssistantTurn({
+      const { apiKey, usedTrial } = await resolveGeminiKey(userId);
+      const result = await runAssistantTurn({
         apiKey,
         projectId: id,
         project: { ...project, chatStage: "VOICEOVER_REVIEW" },
@@ -110,6 +110,14 @@ export async function PATCH(
           },
         ],
       });
+      if (usedTrial) await consumeTrialGeneration(userId);
+      // See the same guard in the chat route — Gemini occasionally returns
+      // neither text nor a tool call. This turn never has a tool call by
+      // design (it's the opening proposal, not a confirmation), so empty
+      // text alone means nothing got posted to chat.
+      if (!result.text) {
+        voiceoverReviewError = "Gemini didn't return a reply. Open the chat and continue manually.";
+      }
     } catch (error) {
       voiceoverReviewError =
         error instanceof Error ? error.message : "Couldn't start the voiceover review.";

@@ -156,6 +156,57 @@ export const CONFIRM_VOICEOVER_TEXT_TOOL: Anthropic.Tool = {
   },
 };
 
+// Used by the SCRIPT stage instead of PROPOSE_SCENES_TOOL — a long video
+// can need far more scenes than fit in a single model response, so the
+// script gets built as a sequence of small batches instead of one big call.
+// isFinalBatch is how the model signals the script is actually done; the
+// chat route keeps calling it turn after turn (server-side) until that's
+// true or a safety cap is hit. SCRIPT_REVIEW still uses the full-replace
+// PROPOSE_SCENES_TOOL for revisions — those are usually targeted, not a
+// full rewrite, so the single-shot tool is fine there.
+export const PROPOSE_SCENE_BATCH_TOOL: Anthropic.Tool = {
+  name: "propose_scene_batch",
+  description:
+    "Propose the next batch of up to 8 scenes, continuing from SCRIPT PROGRESS. Call this once " +
+    "per turn — never try to write the whole script in one call. Set isFinalBatch true only once " +
+    "the cumulative duration reaches the target and the script has a proper ending.",
+  input_schema: {
+    type: "object",
+    properties: {
+      scenes: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            script: {
+              type: "string",
+              description: "Voiceover / subtitle text for this scene",
+            },
+            imagePrompt: {
+              type: "string",
+              description: "English prompt to generate this scene's image",
+            },
+            durationMs: {
+              type: "number",
+              description:
+                "Estimated scene duration in milliseconds, based on how long the voiceover " +
+                "line takes to read aloud",
+            },
+          },
+          required: ["script", "imagePrompt"],
+        },
+      },
+      isFinalBatch: {
+        type: "boolean",
+        description:
+          "True if this batch completes the script (cumulative duration reached, proper " +
+          "ending included). False if more batches are still needed.",
+      },
+    },
+    required: ["scenes", "isFinalBatch"],
+  },
+};
+
 // Entered on-demand from the Metadata tab, once script/style/scenes already
 // exist — proposes what the user needs to actually publish the video.
 export const PROPOSE_METADATA_TOOL: Anthropic.Tool = {
