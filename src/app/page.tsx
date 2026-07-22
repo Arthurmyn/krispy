@@ -8,12 +8,12 @@ import {
   Mic,
   MessagesSquare,
 } from "lucide-react";
-import { HeroVideo } from "@/components/landing/HeroVideo";
-import { LandingNav } from "@/components/landing/LandingNav";
-import { Reveal } from "@/components/landing/Reveal";
-import { LanguageSwitcher } from "@/components/landing/LanguageSwitcher";
-import { SupportChatWidget } from "@/components/landing/SupportChatWidget";
-import { PricingCta } from "@/components/landing/PricingCta";
+import { HeroVideo } from "@/frontend/components/landing/HeroVideo";
+import { LandingNav } from "@/frontend/components/landing/LandingNav";
+import { Reveal } from "@/frontend/components/landing/Reveal";
+import { LanguageSwitcher } from "@/frontend/components/landing/LanguageSwitcher";
+import { SupportChatWidget } from "@/frontend/components/landing/SupportChatWidget";
+import { PricingCta } from "@/frontend/components/landing/PricingCta";
 
 const FOOTER_PRODUCT_LINKS = [
   { href: "#features", label: "Features" },

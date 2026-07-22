@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
+import { prisma } from "@/backend/prisma";
+import { getSessionUserId } from "@/backend/session";
 
 // Polled by the client while a render is in progress.
 export async function GET(

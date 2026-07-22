@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { NewProjectForm } from "@/components/app/NewProjectForm";
-import { AppShell } from "@/components/app/AppShell";
-import { SignInScreen } from "@/components/app/SignInScreen";
+import { auth } from "@/backend/auth";
+import { prisma } from "@/backend/prisma";
+import { NewProjectForm } from "@/frontend/components/app/NewProjectForm";
+import { AppShell } from "@/frontend/components/app/AppShell";
+import { SignInScreen } from "@/frontend/components/app/SignInScreen";
 
 export default async function Home() {
   const session = await auth();

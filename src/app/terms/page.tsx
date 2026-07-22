@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
+import { LegalPageLayout } from "@/frontend/components/legal/LegalPageLayout";
 
 export const metadata: Metadata = { title: "Terms of Use — Krispy" };
 

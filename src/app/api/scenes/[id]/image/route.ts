@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
-import { generateSceneImage, consumeTrialGeneration } from "@/lib/providers";
-import { saveGeneratedAsset } from "@/lib/assets";
+import { prisma } from "@/backend/prisma";
+import { getSessionUserId } from "@/backend/session";
+import { generateSceneImage, consumeTrialGeneration } from "@/ai/providers";
+import { saveGeneratedAsset } from "@/backend/assets";
 import type { AspectRatio } from "@/generated/prisma/client";
 
 const ASPECT_RATIO_MAP: Record<AspectRatio, "9:16" | "16:9" | "1:1"> = {

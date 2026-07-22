@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/backend/prisma";
 import type { Scene } from "@/generated/prisma/client";
-import { getSessionUserId } from "@/lib/session";
-import { renderQueue } from "@/lib/queue/renderQueue";
+import { getSessionUserId } from "@/backend/session";
+import { renderQueue } from "@/backend/queue/renderQueue";
 
 export async function POST(
   _request: Request,

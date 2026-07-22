@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
-import { generateVoiceover, consumeTrialGeneration } from "@/lib/providers";
-import { saveGeneratedAsset } from "@/lib/assets";
+import { prisma } from "@/backend/prisma";
+import { getSessionUserId } from "@/backend/session";
+import { generateVoiceover, consumeTrialGeneration } from "@/ai/providers";
+import { saveGeneratedAsset } from "@/backend/assets";
 
 const bodySchema = z.object({
   text: z.string().min(1).optional(),

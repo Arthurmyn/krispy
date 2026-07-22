@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
+import { prisma } from "@/backend/prisma";
+import { getSessionUserId } from "@/backend/session";
 
 const createProjectSchema = z.object({
   category: z.string().min(1),

@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "worker": "tsx watch src/lib/queue/renderWorker.ts",
-    "remotion:studio": "remotion studio src/remotion/index.ts",
+    "worker": "tsx watch src/backend/queue/renderWorker.ts",
+    "remotion:studio": "remotion studio src/backend/remotion/index.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate"

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/password";
+import { prisma } from "@/backend/prisma";
+import { hashPassword } from "@/backend/password";
 
 const bodySchema = z.object({
   email: z.string().email(),

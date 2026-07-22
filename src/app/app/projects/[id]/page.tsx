@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { ProjectWorkspace } from "@/components/app/ProjectWorkspace";
-import { AppShell } from "@/components/app/AppShell";
+import { auth } from "@/backend/auth";
+import { prisma } from "@/backend/prisma";
+import { ProjectWorkspace } from "@/frontend/components/app/ProjectWorkspace";
+import { AppShell } from "@/frontend/components/app/AppShell";
 
 export default async function ProjectPage({
   params,

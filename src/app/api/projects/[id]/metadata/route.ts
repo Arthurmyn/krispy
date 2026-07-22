@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
-import { resolveGeminiKey, consumeTrialGeneration } from "@/lib/providers";
-import { runAssistantTurn } from "@/lib/chatTurn";
+import { prisma } from "@/backend/prisma";
+import { getSessionUserId } from "@/backend/session";
+import { resolveGeminiKey, consumeTrialGeneration } from "@/ai/providers";
+import { runAssistantTurn } from "@/ai/chatTurn";
 
 // Entry point for the Metadata tab — unlike the other stages, this one
 // isn't reached by finishing the previous step in sequence; the user opens

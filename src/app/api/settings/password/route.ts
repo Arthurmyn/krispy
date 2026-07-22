@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
-import { hashPassword, verifyPassword } from "@/lib/password";
+import { prisma } from "@/backend/prisma";
+import { getSessionUserId } from "@/backend/session";
+import { hashPassword, verifyPassword } from "@/backend/password";
 
 const bodySchema = z.object({
   currentPassword: z.string().optional(),

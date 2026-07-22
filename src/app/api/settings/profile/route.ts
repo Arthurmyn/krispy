@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
+import { prisma } from "@/backend/prisma";
+import { getSessionUserId } from "@/backend/session";
 
 const bodySchema = z.object({ name: z.string().trim().min(1).max(80) });
 

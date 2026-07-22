@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
-import { encryptApiKey } from "@/lib/crypto";
+import { prisma } from "@/backend/prisma";
+import { getSessionUserId } from "@/backend/session";
+import { encryptApiKey } from "@/backend/crypto";
 
 const bodySchema = z.object({
   provider: z.enum(["GEMINI", "ELEVENLABS", "ANTHROPIC"]),

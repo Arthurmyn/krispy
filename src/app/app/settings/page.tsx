@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { SettingsTabs } from "@/components/app/SettingsTabs";
-import { AppShell } from "@/components/app/AppShell";
+import { auth } from "@/backend/auth";
+import { prisma } from "@/backend/prisma";
+import { SettingsTabs } from "@/frontend/components/app/SettingsTabs";
+import { AppShell } from "@/frontend/components/app/AppShell";
 
 export default async function SettingsPage() {
   const session = await auth();

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
-import { resolveGeminiKey, consumeTrialGeneration } from "@/lib/providers";
-import { runAssistantTurn } from "@/lib/chatTurn";
-import { MUSIC_LIBRARY } from "@/lib/musicLibrary";
+import { prisma } from "@/backend/prisma";
+import { getSessionUserId } from "@/backend/session";
+import { resolveGeminiKey, consumeTrialGeneration } from "@/ai/providers";
+import { runAssistantTurn } from "@/ai/chatTurn";
+import { MUSIC_LIBRARY } from "@/backend/musicLibrary";
 
 export async function GET(
   _request: Request,
