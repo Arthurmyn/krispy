@@ -53,11 +53,11 @@ function NavPill({
       title={collapsed ? label : undefined}
       className={
         active
-          ? "flex items-center gap-3 rounded-2xl bg-surface-hover px-4 py-3 text-sm font-medium text-text-primary"
-          : "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+          ? "flex items-center gap-2.5 rounded-xl bg-surface-hover px-3 py-2 text-sm font-medium text-text-primary"
+          : "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
       }
     >
-      <Icon size={19} />
+      <Icon size={17} />
       {!collapsed ? <span className="truncate">{label}</span> : null}
     </Link>
   );
@@ -86,17 +86,17 @@ export function Sidebar({
 
   return (
     <aside
-      className={`flex shrink-0 flex-col border-r border-border bg-surface p-4 transition-[width] duration-200 ${
-        collapsed ? "w-20" : "w-56"
+      className={`m-3 flex shrink-0 flex-col rounded-3xl border border-border bg-surface p-3 transition-[width] duration-200 ${
+        collapsed ? "w-[4.5rem]" : "w-48"
       }`}
     >
       <div
-        className={`flex items-center px-1 py-1.5 ${collapsed ? "justify-center" : "justify-between"}`}
+        className={`flex items-center px-1 py-1 ${collapsed ? "justify-center" : "justify-between"}`}
       >
         {!collapsed ? (
           <Link
             href="/app"
-            className="text-lg font-semibold tracking-tight text-text-primary"
+            className="text-base font-semibold tracking-tight text-text-primary"
           >
             Krispy
           </Link>
@@ -105,13 +105,13 @@ export function Sidebar({
           type="button"
           onClick={() => setCollapsed((c) => !c)}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary hover:bg-surface-hover hover:text-text-primary"
+          className="flex h-6 w-6 items-center justify-center rounded-lg text-text-tertiary hover:bg-surface-hover hover:text-text-primary"
         >
-          <PanelLeft size={15} />
+          <PanelLeft size={14} />
         </button>
       </div>
 
-      <nav className="mt-6 flex flex-col gap-1">
+      <nav className="mt-4 flex flex-col gap-1">
         <NavPill
           href="/app"
           icon={Home}
@@ -128,11 +128,11 @@ export function Sidebar({
         />
       </nav>
 
-      <div className="mt-8 flex min-h-0 flex-1 flex-col">
+      <div className="mt-5 flex min-h-0 flex-1 flex-col">
         {!collapsed ? (
-          <p className="px-4 text-sm text-text-tertiary">Steps</p>
+          <p className="px-3 text-xs text-text-tertiary">Steps</p>
         ) : null}
-        <div className="mt-2 flex flex-col gap-1">
+        <div className="mt-1.5 flex flex-col gap-1">
           {STEPS.map((step) => {
             // Unlocked for now — all steps are reachable as soon as a
             // project is open, regardless of how far along it is. Each
@@ -142,7 +142,7 @@ export function Sidebar({
             const active = reachable && activeStep === step.id;
             const content = (
               <>
-                <step.icon size={19} className="shrink-0" />
+                <step.icon size={17} className="shrink-0" />
                 {!collapsed ? (
                   <span className="truncate">{step.label}</span>
                 ) : null}
@@ -157,8 +157,8 @@ export function Sidebar({
                   title={collapsed ? step.label : undefined}
                   className={
                     active
-                      ? "flex items-center gap-3 rounded-2xl bg-surface-hover px-4 py-3 text-sm font-medium text-text-primary"
-                      : "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                      ? "flex items-center gap-2.5 rounded-xl bg-surface-hover px-3 py-2 text-sm font-medium text-text-primary"
+                      : "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
                   }
                 >
                   {content}
@@ -174,7 +174,7 @@ export function Sidebar({
                     ? "Not ready yet"
                     : "Open a project to jump between its steps"
                 }
-                className="flex cursor-not-allowed items-center gap-3 rounded-2xl px-4 py-3 text-sm text-text-tertiary opacity-50"
+                className="flex cursor-not-allowed items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-text-tertiary opacity-50"
               >
                 {content}
               </span>
@@ -185,13 +185,13 @@ export function Sidebar({
 
       <Link
         href="/app"
-        className="flex items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover"
+        className="flex items-center justify-center gap-2 rounded-full bg-accent px-3 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover"
       >
-        <Plus size={16} strokeWidth={2.5} />
+        <Plus size={15} strokeWidth={2.5} />
         {!collapsed ? "New video" : null}
       </Link>
 
-      <div className="mt-3">
+      <div className="mt-2">
         <ProfileMenu userLabel={userLabel} collapsed={collapsed} />
       </div>
     </aside>
